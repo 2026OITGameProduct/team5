@@ -39,6 +39,8 @@ public class PlayerSelect : MonoBehaviour
     {
         Debug.Log(playerCount + "人でゲームを開始します！");
         // ※ここに次のシーンへ行く処理を書きます
+PlayerPrefs.SetInt("PlayerCount", playerCount); // 「PlayerCount」という名前で人数を保存！
+        PlayerPrefs.Save(); // しっかりセーブする
     }
 
     // 画面の文字を書き換える処理
