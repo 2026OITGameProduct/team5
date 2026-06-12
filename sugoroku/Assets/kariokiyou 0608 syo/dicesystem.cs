@@ -18,6 +18,9 @@ public class DiceController : MonoBehaviour
     // プレイヤーへの参照（出目を渡すため）
     [SerializeField] private LoopSugorokuPlayer player;
 
+    // 🔴 【多人数化用に追加】マネージャーへの参照
+    [SerializeField] private SugorokuManager sugorokuManager;
+
     private bool isRolling = false;
 
     private void Start()
@@ -73,14 +76,24 @@ public class DiceController : MonoBehaviour
         yield return new WaitForSeconds(0.5f); // 確定目を少し見せるためのウェイト
 
         // プレイヤーを移動させる（前回のスクリプトを呼び出す）
-        if (player != null)
+        if (sugorokuManager != null)
         {
+            // 🔴 多人数時はマネージャーに出目を渡して現在のプレイヤーを動かす
+            sugorokuManager.OnDiceRolled(finalResult);
+        }
+        else if (player != null)
+        {
+            // （予備用）もしマネージャーがいなければ、元の単体プレイヤーを動かす
             player.MoveSteps(finalResult); // 確定した出目の数を渡す
+            rollButton.interactable = true; // ボタンを再度有効化
         }
 
         isRolling = false;
-        rollButton.interactable = true;
+    }
 
-         // ボタンを再度有効化
+    // 🔴 【多人数化用に追加】プレイヤーの移動終了後にマネージャーからボタンを復活させる
+    public void EnableDiceButton()
+    {
+        if (rollButton != null) rollButton.interactable = true;
     }
 }

@@ -1,6 +1,6 @@
 using System.Collections;
-using UnityEngine;
 using TMPro; // 💡 TextMeshProを使うために追加
+using UnityEngine;
 
 public class LoopSugorokuPlayer : MonoBehaviour
 {
@@ -16,10 +16,33 @@ public class LoopSugorokuPlayer : MonoBehaviour
     private bool isMoving = false;
     private bool isGoal = false;
 
+    private Vector3 playerOffset; // 💡 複数人が重ならないためのズレ幅
+
     // プレイヤーの戦績データ
     public int score { get; private set; } = 0;
     public int lapCount { get; private set; } = 0;
 
+    // 🔴 マネージャーから呼び出される初期化メソッド
+public void SetupPlayer(Transform[] waypoints, int id, TMPro.TextMeshProUGUI sText, TMPro.TextMeshProUGUI lText, TMPro.TextMeshProUGUI logTxt)
+    {
+        this.routeWaypoints = waypoints;
+        this.scoreText = sText;
+        this.lapText = lText;
+        this.logText = logTxt;
+
+        // 💡 1P, 2P...が同じマスで重ならないように少しだけ位置をずらす設定
+        this.playerOffset = new Vector3((id % 2) * 0.4f, 1f, (id / 2) * 0.4f);
+
+        // スタート位置（0番目のマス）に配置
+        currentWaypointIndex = 0;
+        if (routeWaypoints != null && routeWaypoints.Length > 0)
+        {
+            transform.position = routeWaypoints[0].position + playerOffset;
+        }
+
+        // UIの更新メソッドがあれば実行（なければコメントアウトしてください）
+        UpdateUI();
+    }
     private void Start()
     {
         // 💡 ゲーム開始時にUIを初期化
@@ -64,7 +87,7 @@ public class LoopSugorokuPlayer : MonoBehaviour
                 {
                     isGoal = true;
                     currentWaypointIndex = 0;
-                    transform.position = routeWaypoints[0].position;
+                    transform.position = routeWaypoints[0].position + playerOffset;
 
                     string clearMsg = "🎉 3ポイント持ってゴール通過！ゲームクリア！ 🎉";
                     Debug.Log(clearMsg);
@@ -79,7 +102,7 @@ public class LoopSugorokuPlayer : MonoBehaviour
             }
 
             currentWaypointIndex = nextIndex;
-            Vector3 targetPosition = routeWaypoints[currentWaypointIndex].position;
+            Vector3 targetPosition = routeWaypoints[currentWaypointIndex].position + playerOffset;
             // 1マス分の移動処理
             while (Vector3.Distance(transform.position, targetPosition) > 0.01f)
             {
