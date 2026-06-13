@@ -7,8 +7,7 @@ public class EventPopupManager : MonoBehaviour
     [SerializeField] private GameObject popupPanel; 
     [SerializeField] private GameObject okButton; 
     
-    // 💡 タイマーを速く調整しました
-    private float scaleDuration = 0.3f;  // 四角形が出る速さ：0.3秒
+    private float scaleDuration = 0.5f;  // 四角形が出る速さ：0.5秒
     private float buttonDelay = 0.2f;    // OKボタンが出る遅延：0.2秒
 
     private Image panelImage; 
@@ -49,12 +48,10 @@ public class EventPopupManager : MonoBehaviour
 
     private IEnumerator PopupAnimationRoutine()
     {
-        // 1. 小さい状態で出現
         popupPanel.transform.localScale = Vector3.zero;
         popupPanel.SetActive(true);
         okButton.SetActive(false); 
 
-        // 2. 0.5秒で大きくなる
         float currentTime = 0f;
         while (currentTime < scaleDuration)
         {
@@ -65,10 +62,7 @@ public class EventPopupManager : MonoBehaviour
         }
         popupPanel.transform.localScale = Vector3.one; 
 
-        // 3. 大きくなった0.2秒後に
         yield return new WaitForSeconds(buttonDelay);
-
-        // 4. OKボタン出現
         okButton.SetActive(true);
     }
 

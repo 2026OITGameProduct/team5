@@ -2,26 +2,55 @@ using UnityEngine;
 
 public class MasuEvent : MonoBehaviour
 {
-    // 将来的に「3マス進む」などの効果を選びたくなったとき用の枠
-    public enum MasuType { Normal, GoForward3, GoBack2, MissTurn }
+    public enum MasuType 
+    { 
+        Normal,         // 普通のマス（何も起きない）
+        GoForward3,     // 3マス進む
+        GoBack2,        // 2マス戻る
+        AddPoint1,      // 1ポイント得る
+        ReducePoint1,   // 1ポイント失う
+        MissTurn        // 1回休み
+    }
+    
+    [Header("マスの設定")]
     public MasuType masuType = MasuType.Normal;
 
-    // 💡【パネルを後で画像に差し替えられる枠！】
-    // インスペクターから、このマス専用の画像をここに入れます。空っぽなら白いパネルが出ます。
+    [Header("表示するイベント画像")]
     public Sprite eventImage;  
 
-    // 💡【後々イベントを実行できる枠！】
-    // OKボタンが押された後に実行したい中身をここに書きます。今はまだ「消えるだけ」にしたいので、何も起きないようにしています。
+    // OKボタンが押された後に実行される中身
     public void OnPlayerStop(LoopSugorokuPlayer player)
     {
         switch (masuType)
         {
             case MasuType.Normal:
-                // 今は何もしない（四角形が消えて終わり）
                 break;
                 
             case MasuType.GoForward3:
+                Debug.Log("イベント効果：3マス進みます！");
                 player.MoveStepsByEvent(3); 
+                break;
+
+            case MasuType.GoBack2:
+                Debug.Log("イベント効果：2マス戻ります！");
+                player.MoveBackStepsByEvent(2);
+                break;
+
+            case MasuType.AddPoint1:
+                player.score += 1;
+                player.UpdateUI();
+                Debug.Log($"イベント効果：1ポイント獲得！ (合計: {player.score}pt)");
+                break;
+
+            case MasuType.ReducePoint1:
+                player.score = Mathf.Max(0, player.score - 1);
+                player.UpdateUI();
+                Debug.Log($"イベント効果：1ポイント減少... (合計: {player.score}pt)");
+                break;
+
+            case MasuType.MissTurn:
+                Debug.Log("イベント効果：次のターンは1回休みになります！");
+                player.isSkippingNextTurn = true;
                 break;
         }
     }

@@ -1,7 +1,6 @@
 using System.Collections;
 using TMPro; 
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class LoopSugorokuPlayer : MonoBehaviour
 {
@@ -15,19 +14,33 @@ public class LoopSugorokuPlayer : MonoBehaviour
     private int currentWaypointIndex = 0;
     private bool isMoving = false;
     private bool isGoal = false;
-
-    // 💡【新機能！】効果で動かされたかどうかを記録するフラグ
     private bool isForcedMoving = false; 
 
     private Vector3 playerOffset; 
     private EventPopupManager popupManager; 
+    private CanvasGroup diceCanvasGroup;
 
-    public int score { get; private set; } = 0;
+    // 外部のMasuEventからポイントを直接書き換えられるようにしています
+    public int score { get; set; } = 0;
     public int lapCount { get; private set; } = 0;
+
+    // 1回休み状態を記録するフラグ
+    public bool isSkippingNextTurn { get; set; } = false;
 
     private void Awake()
     {
         popupManager = Object.FindAnyObjectByType<EventPopupManager>();
+
+        // サイコロのオブジェクトを自動検索してロック用の部品を準備
+        GameObject diceObj = GameObject.Find("DiceManager") ?? GameObject.Find("Dice") ?? GameObject.Find("RollButton");
+        if (diceObj != null)
+        {
+            diceCanvasGroup = diceObj.GetComponent<CanvasGroup>();
+            if (diceCanvasGroup == null)
+            {
+                diceCanvasGroup = diceObj.AddComponent<CanvasGroup>();
+            }
+        }
     }
 
     public void SetupPlayer(Transform[] waypoints, int id, TMPro.TextMeshProUGUI sText, TMPro.TextMeshProUGUI lText, TMPro.TextMeshProUGUI logTxt)
@@ -52,31 +65,40 @@ public class LoopSugorokuPlayer : MonoBehaviour
         if (logText != null) logText.text = "ゲームスタート！ダイスを振ってください。";
     }
 
-    private void UpdateUI()
+    // 外部からポイントが変わった時にもこれを呼び出して画面を更新します
+    public void UpdateUI()
     {
         if (scoreText != null) scoreText.text = $"ポイント: {score} pt";
         if (lapText != null) lapText.text = $"{lapCount} 周目";
     }
 
-    // 💡 通常のサイコロ移動（イベントを受け付ける）
     public void MoveSteps(int steps)
     {
         if (isGoal) return;
         if (!isMoving) 
         {
-            isForcedMoving = false; // 自分のサイコロで動くのでフラグをリセット
+            isForcedMoving = false; 
             StartCoroutine(MoveRoutine(steps));
         }
     }
 
-    // 💡【新機能！】イベントの効果で移動させるときはこっちを呼び出す
     public void MoveStepsByEvent(int steps)
     {
         if (isGoal) return;
         if (!isMoving) 
         {
-            isForcedMoving = true; // 「効果で動かされたよ！」という目印をつける
+            isForcedMoving = true; 
             StartCoroutine(MoveRoutine(steps));
+        }
+    }
+
+    public void MoveBackStepsByEvent(int steps)
+    {
+        if (isGoal) return;
+        if (!isMoving)
+        {
+            isForcedMoving = true; 
+            StartCoroutine(MoveBackRoutine(steps));
         }
     }
 
@@ -97,7 +119,6 @@ public class LoopSugorokuPlayer : MonoBehaviour
                     string clearMsg = "🎉 3ポイント持ってゴール通過！ゲームクリア！ 🎉";
                     if (logText != null) logText.text = clearMsg; 
                     isMoving = false;
-                    SceneManager.LoadScene("ResultScene");
                     UpdateUI(); 
                     yield break; 
                 }
@@ -119,17 +140,14 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
         isMoving = false;
 
-        // 💡【今回のメイン対策！】
-        // もし「イベントの効果で移動してきた（isForcedMovingがtrue）」なら、ポップアップは出さずに素通りする
+        // 効果移動で着地した場合は、そこで追加のイベントポップアップを出さない（無限ループ防止）
         if (isForcedMoving)
         {
-            // 効果を受けずに、通常のプラス・マイナスの基礎計算だけして終了
             OnLandOnWaypoint(currentWaypointIndex);
-            isForcedMoving = false; // 次のターンのためにフラグを元に戻しておく
-            yield break; // ここで処理を終了（ポップアップを出さない）
+            isForcedMoving = false; 
+            yield break; 
         }
 
-        // 💡 通常のサイコロ移動の時だけ、いつも通りポップアップを出す
         GameObject currentMasuObject = routeWaypoints[currentWaypointIndex].gameObject;
         MasuEvent masuEvent = currentMasuObject.GetComponentInChildren<MasuEvent>();
 
@@ -137,10 +155,18 @@ public class LoopSugorokuPlayer : MonoBehaviour
         {
             Sprite imageToShow = (masuEvent != null) ? masuEvent.eventImage : null;
 
+            // ポップアップが出るのでサイコロをロック
+            SetDiceInteraction(false);
+
             popupManager.ShowEventPopup(imageToShow, () =>
             {
+                // OKボタンが押されたらサイコロのロックを解除
+                SetDiceInteraction(true);
+
+                // マスの基本的な着地処理
                 OnLandOnWaypoint(currentWaypointIndex);
 
+                // マスに設定された個別イベント（3マス進む、ポイント増減、1回休み等）を実行
                 if (masuEvent != null)
                 {
                     masuEvent.OnPlayerStop(this);
@@ -153,27 +179,56 @@ public class LoopSugorokuPlayer : MonoBehaviour
         }
     }
 
+    // 逆走アニメーション用の処理
+    private IEnumerator MoveBackRoutine(int steps)
+    {
+        isMoving = true;
+
+        for (int i = 0; i < steps; i++)
+        {
+            int prevIndex = currentWaypointIndex - 1;
+            if (prevIndex < 0)
+            {
+                prevIndex = routeWaypoints.Length - 1;
+            }
+
+            currentWaypointIndex = prevIndex;
+            Vector3 targetPosition = routeWaypoints[currentWaypointIndex].position + playerOffset;
+
+            while (Vector3.Distance(transform.position, targetPosition) > 0.01f)
+            {
+                transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
+                yield return null;
+            }
+
+            transform.position = targetPosition;
+            yield return new WaitForSeconds(0.1f);
+        }
+
+        isMoving = false;
+        OnLandOnWaypoint(currentWaypointIndex);
+        isForcedMoving = false;
+    }
+
+    private void SetDiceInteraction(bool interactable)
+    {
+        if (diceCanvasGroup != null)
+        {
+            diceCanvasGroup.blocksRaycasts = interactable; 
+            diceCanvasGroup.alpha = interactable ? 1.0f : 0.6f; 
+        }
+    }
+
     private void OnLapPassed()
     {
         lapCount++;
-        score += 1; 
+        score += 1; // 周回ボーナス
         UpdateUI(); 
     }
 
     private void OnLandOnWaypoint(int waypointIndex)
     {
-        if (waypointIndex == 3 || waypointIndex == 9)
-        {
-            score += 1;
-            string msg = $"プラスマスに到着！ +1pt (合計:{score}pt)";
-            if (logText != null) logText.text = msg;
-        }
-        else if (waypointIndex == 6)
-        {
-            score = Mathf.Max(0, score - 1);
-            string msg = $"マイナスマスに到着... -1pt (合計:{score}pt)";
-            if (logText != null) logText.text = msg;
-        }
+        if (logText != null) logText.text = $"{waypointIndex + 1}番目のマスに着地。";
 
         if (waypointIndex == 0 && score >= 3)
         {
