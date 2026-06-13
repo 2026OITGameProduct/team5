@@ -1,14 +1,14 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro; // 🔴 ボタンの文字を変えるために追加
+using TMPro; // ボタンの文字を変えるために追加
 
 public class DiceController : MonoBehaviour
 {
     [Header("UIコンポーネント")]
     [SerializeField] private Image diceImage;       // 出目を表示するUIのImage
     [SerializeField] private Button rollButton;     // サイコロを振るボタン
-    [SerializeField] private TextMeshProUGUI buttonText; // 🔴 【新設】ボタンのテキスト（「サイコロを振る」や「OK」に書き換える用）
+    [SerializeField] private TextMeshProUGUI buttonText; // ボタンのテキスト（「サイコロを振る」や「OK」に書き換える用）
 
     [Header("サイコロ画像（1〜6の順番でセット）")]
     [SerializeField] private Sprite[] diceSprites;  // 要素数6の配列
@@ -17,15 +17,21 @@ public class DiceController : MonoBehaviour
     [SerializeField] private float rollDuration = 1.0f; // シャッフルする時間（秒）
     [SerializeField] private float shuffleInterval = 0.05f; // 画像が切り替わる速度
 
+    [Header("オーディオ設定")]
+    // 🔴 【新設】効果音の音源ファイルをインスペクターで登録するための枠
+    [SerializeField] private AudioClip rollSound;
+    // 🔴 【新設】スピーカー役のコンポーネントを引っ張ってくるための枠
+    [SerializeField] private AudioSource audioSource;
+
     // プレイヤーへの参照（出目を渡すため）
     [SerializeField] private LoopSugorokuPlayer player;
 
-    // 🔴 【多人数化用に追加】マネージャーへの参照
+    // 【多人数化用に追加】マネージャーへの参照
     [SerializeField] private SugorokuManager sugorokuManager;
 
     private bool isRolling = false;
 
-    // 🔴 【新設】現在ボタンが「OKボタン」の役割になっているかどうかのフラグ
+    // 【新設】現在ボタンが「OKボタン」の役割になっているかどうかのフラグ
     private bool isOkMode = false;
 
     private void Start()
@@ -36,12 +42,18 @@ public class DiceController : MonoBehaviour
             rollButton.onClick.AddListener(OnRollButtonClick);
         }
         UpdateVectorButtonText("サイコロを振る"); // 最初はサイコロモード
+
+        // 🔴 もしインスペクターでAudioSourceが空っぽだったら、自分についているものを自動で取得する安全装置
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+        }
     }
 
     // ボタンが押された時の処理
     public void OnRollButtonClick()
     {
-        // 🔴 【新設】もし今が「OKボタンモード」なら、ポップアップを閉じる処理を実行する
+        // 【新設】もし今が「OKボタンモード」なら、ポップアップを閉じる処理を実行する
         if (isOkMode)
         {
             EventPopupManager popup = Object.FindAnyObjectByType<EventPopupManager>();
@@ -54,6 +66,14 @@ public class DiceController : MonoBehaviour
         }
 
         if (isRolling) return;
+
+        // 🔴 【ここが本番！】サイコロが回り始める瞬間に効果音を鳴らす！
+        if (audioSource != null && rollSound != null)
+        {
+            audioSource.PlayOneShot(rollSound);
+            audioSource.PlayOneShot(rollSound);
+        }
+
         StartCoroutine(RollDiceRoutine());
     }
 
@@ -96,7 +116,7 @@ public class DiceController : MonoBehaviour
         // プレイヤーを移動させる（前回のスクリプトを呼び出す）
         if (sugorokuManager != null)
         {
-            // 🔴 多人数時はマネージャーに出目を渡して現在のプレイヤーを動かす
+            // 多人数時はマネージャーに出目を渡して現在のプレイヤーを動かす
             sugorokuManager.OnDiceRolled(finalResult);
         }
         else if (player != null)
@@ -109,22 +129,22 @@ public class DiceController : MonoBehaviour
         isRolling = false;
     }
 
-    // 🔴 【多人数化用に追加】プレイヤーの移動終了後にマネージャーからボタンを復活させる
+    // 【多人数化用に追加】プレイヤーの移動終了後にマネージャーからボタンを復活させる
     public void EnableDiceButton()
     {
         if (rollButton != null) rollButton.interactable = true;
-        UpdateVectorButtonText("サイコロを振る"); // 🔴 サイコロモードの文字に戻す
+        UpdateVectorButtonText("サイコロを振る"); // サイコロモードの文字に戻す
     }
 
-    // 🔴 【新設】外部からボタンを「OKボタンモード」に変身させるための窓口
+    // 【新設】外部からボタンを「OKボタンモード」に変身させるための窓口
     public void SwitchToOkMode()
     {
         isOkMode = true;
         if (rollButton != null) rollButton.interactable = true; // ボタンを押せるようにする
-        UpdateVectorButtonText("次へ"); // 🔴 ボタンの文字を「次へ」に変える
+        UpdateVectorButtonText("次へ"); // ボタンの文字を「次へ」に変える
     }
 
-    // 🔴 【新設】ボタンの文字を安全に書き換える用のメソッド
+    // 【新設】ボタンの文字を安全に書き換える用のメソッド
     private void UpdateVectorButtonText(string text)
     {
         if (buttonText != null) buttonText.text = text;

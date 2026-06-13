@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class MasuEvent : MonoBehaviour
 {
-    public enum MasuType 
-    { 
+    public enum MasuType
+    {
         Normal,         // 普通のマス（何も起きない）
         GoForward3,     // 3マス進む
         GoBack2,        // 2マス戻る
@@ -11,12 +11,16 @@ public class MasuEvent : MonoBehaviour
         ReducePoint1,   // 1ポイント失う
         MissTurn        // 1回休み
     }
-    
+
     [Header("マスの設定")]
     public MasuType masuType = MasuType.Normal;
 
     [Header("表示するイベント画像")]
-    public Sprite eventImage;  
+    public Sprite eventImage;
+
+    [Header("🔴 このマス専用の効果音")]
+    // 💡 【新設】このマスに止まってウィンドウが開くときに鳴らしたい音をインスペクターで入れます
+    public AudioClip masuEventSound;
 
     // OKボタンが押された後に実行される中身
     public void OnPlayerStop(LoopSugorokuPlayer player)
@@ -25,10 +29,10 @@ public class MasuEvent : MonoBehaviour
         {
             case MasuType.Normal:
                 break;
-                
+
             case MasuType.GoForward3:
                 Debug.Log("イベント効果：3マス進みます！");
-                player.MoveStepsByEvent(3); 
+                player.MoveStepsByEvent(3);
                 break;
 
             case MasuType.GoBack2:
