@@ -4,14 +4,14 @@ using UnityEngine.UI;
 
 public class EventPopupManager : MonoBehaviour
 {
-    [SerializeField] private GameObject popupPanel; 
-    [SerializeField] private GameObject okButton; 
-    
+    [SerializeField] private GameObject popupPanel;
+    // [SerializeField] private GameObject okButton; // 🔴 古いOKボタンは使わないので不要になります
+
     private float scaleDuration = 0.5f;  // 四角形が出る速さ：0.5秒
     private float buttonDelay = 0.2f;    // OKボタンが出る遅延：0.2秒
 
-    private Image panelImage; 
-    private System.Action onOkPressedCallback; 
+    private Image panelImage;
+    private System.Action onOkPressedCallback;
 
     private void Awake()
     {
@@ -24,7 +24,7 @@ public class EventPopupManager : MonoBehaviour
     private void Start()
     {
         if (popupPanel != null) popupPanel.SetActive(false);
-        if (okButton != null) okButton.SetActive(false);
+        // if (okButton != null) okButton.SetActive(false);
     }
 
     public void ShowEventPopup(Sprite targetSprite, System.Action onComplete)
@@ -39,7 +39,7 @@ public class EventPopupManager : MonoBehaviour
             }
             else
             {
-                panelImage.sprite = null; 
+                panelImage.sprite = null;
             }
         }
 
@@ -50,7 +50,7 @@ public class EventPopupManager : MonoBehaviour
     {
         popupPanel.transform.localScale = Vector3.zero;
         popupPanel.SetActive(true);
-        okButton.SetActive(false); 
+        // okButton.SetActive(false); 
 
         float currentTime = 0f;
         while (currentTime < scaleDuration)
@@ -60,16 +60,23 @@ public class EventPopupManager : MonoBehaviour
             popupPanel.transform.localScale = Vector3.Lerp(Vector3.zero, Vector3.one, progress);
             yield return null;
         }
-        popupPanel.transform.localScale = Vector3.one; 
+        popupPanel.transform.localScale = Vector3.one;
 
         yield return new WaitForSeconds(buttonDelay);
-        okButton.SetActive(true);
+        // okButton.SetActive(true);
+
+        // 🔴 【新設】ポップアップが出終わったら、サイコロボタンを「OKモード」に変身させる
+        DiceController dice = Object.FindAnyObjectByType<DiceController>();
+        if (dice != null)
+        {
+            dice.SwitchToOkMode();
+        }
     }
 
     public void OnOkButtonPressed()
     {
         popupPanel.SetActive(false);
-        okButton.SetActive(false);
+        // okButton.SetActive(false);
 
         if (onOkPressedCallback != null)
         {
