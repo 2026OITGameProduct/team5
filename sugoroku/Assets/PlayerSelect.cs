@@ -1,5 +1,5 @@
-using UnityEngine;
 using TMPro; // TextMeshProを使うために必要
+using UnityEngine;
 using UnityEngine.SceneManagement; // シーン遷移のために必要
 
 public class CharacterSelectUIManager : MonoBehaviour
@@ -12,6 +12,8 @@ public class CharacterSelectUIManager : MonoBehaviour
 
     [SerializeField] private TextMeshProUGUI playerCountText; // 人数表示用テキスト
     [SerializeField] private string gameSceneName = "GameScene"; // 別担当が作るゲーム画面のシーン名
+    [SerializeField] private GameObject targetUI;
+
 
     private int playerCount = 1; // 現在の人数（初期値は1人）
     private int minPlayers = 1; // 最小人数
@@ -65,6 +67,10 @@ public class CharacterSelectUIManager : MonoBehaviour
         foreach (Transform child in transform)
         {
             child.gameObject.SetActive(false);
+            if (targetUI != null)
+            {
+                targetUI.SetActive(false); // 非表示にする
+            }
         }
 
         // 次のシーン（ゲーム本編）へ遷移
