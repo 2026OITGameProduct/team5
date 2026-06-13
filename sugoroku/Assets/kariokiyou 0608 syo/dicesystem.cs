@@ -15,83 +15,115 @@ public class DiceController : MonoBehaviour
     [SerializeField] private float rollDuration = 1.0f; // シャッフルする時間（秒）
     [SerializeField] private float shuffleInterval = 0.05f; // 画像が切り替わる速度
 
-    // プレイヤーへの参照（出目を渡すため）
-    [SerializeField] private LoopSugorokuPlayer player;
-
-    // 🔴 【多人数化用に追加】マネージャーへの参照
-    [SerializeField] private SugorokuManager sugorokuManager;
+    [SerializeField] private LoopSugorokuPlayer player; // (単体プレイ用予備)
+    [SerializeField] private SugorokuManager sugorokuManager; // 🔴マネージャー参照
 
     private bool isRolling = false;
 
     private void Start()
     {
-        // ボタンにクリックイベントを登録
         if (rollButton != null)
         {
             rollButton.onClick.AddListener(OnRollButtonClick);
         }
     }
 
-    // ボタンが押された時の処理
     public void OnRollButtonClick()
     {
         if (isRolling) return;
+
+        // 💡【多人数対応】ボタンが押された瞬間に1回休みをチェック
+        if (CheckSkipTurn())
+        {
+            return; // お休みだった場合はサイコロを振らずにパスして終了
+        }
+
         StartCoroutine(RollDiceRoutine());
+    }
+
+    private bool CheckSkipTurn()
+    {
+        // 💡 現在動かすべきターゲットプレイヤーを決定する
+        LoopSugorokuPlayer targetPlayer = null;
+
+        if (sugorokuManager != null)
+        {
+            // マネージャーから「現在の手番のプレイヤー（1Pか2Pか）」をリアルタイムに取得
+            targetPlayer = sugorokuManager.GetCurrentPlayer();
+        }
+        else
+        {
+            targetPlayer = player;
+        }
+
+        // 💡 ターゲットプレイヤーが1回休みフラグを持っていた場合の処理
+        if (targetPlayer != null && targetPlayer.isSkippingNextTurn)
+        {
+            Debug.Log($"🚫 {targetPlayer.name} は1回休みです！パスします。");
+            
+            // お休みを1回消化したのでフラグを消す
+            targetPlayer.isSkippingNextTurn = false;
+
+            if (sugorokuManager != null)
+            {
+                // マネージャーに出目0（お休み）を伝えて、次の人のターンへ回す
+                sugorokuManager.OnDiceRolled(0); 
+            }
+            else
+            {
+                if (rollButton != null) rollButton.interactable = true;
+            }
+
+            return true; // お休みを適用しました
+        }
+
+        return false; // 普通にサイコロを振る
     }
 
     private IEnumerator RollDiceRoutine()
     {
         isRolling = true;
-        rollButton.interactable = false; // 連打防止でボタンを無効化
+        rollButton.interactable = false; 
 
         float timer = 0f;
         int lastRandomIndex = -1;
         int finalResult = 1;
 
-        // 指定した時間（rollDuration）の間、画像を高速でシャッフルする
         while (timer < rollDuration)
         {
             int randomIndex;
-            // 前のフレームと同じ画像が連続で選ばれないようにする工夫
             do
             {
-                randomIndex = Random.Range(0, 6); // 0〜5のインデックス
+                randomIndex = Random.Range(0, 6);
             } while (randomIndex == lastRandomIndex);
 
             lastRandomIndex = randomIndex;
-            diceImage.sprite = diceSprites[randomIndex]; // 画像を変更
+            diceImage.sprite = diceSprites[randomIndex]; 
 
             timer += shuffleInterval;
             yield return new WaitForSeconds(shuffleInterval);
         }
 
-        // 【最終決定】1〜6のランダムな出目を決定
-        finalResult = Random.Range(1, 7); // 1〜6の整数
-
-        // 確定した出目の画像をセット（配列は0から始まるので -1 する）
+        finalResult = Random.Range(1, 7); 
         diceImage.sprite = diceSprites[finalResult - 1];
 
         Debug.Log($"サイコロの出目: {finalResult}");
 
-        yield return new WaitForSeconds(0.5f); // 確定目を少し見せるためのウェイト
+        yield return new WaitForSeconds(0.5f); 
 
-        // プレイヤーを移動させる（前回のスクリプトを呼び出す）
         if (sugorokuManager != null)
         {
-            // 🔴 多人数時はマネージャーに出目を渡して現在のプレイヤーを動かす
             sugorokuManager.OnDiceRolled(finalResult);
         }
         else if (player != null)
         {
-            // （予備用）もしマネージャーがいなければ、元の単体プレイヤーを動かす
-            player.MoveSteps(finalResult); // 確定した出目の数を渡す
-            rollButton.interactable = true; // ボタンを再度有効化
+            player.MoveSteps(finalResult); 
+            rollButton.interactable = true; 
         }
 
         isRolling = false;
     }
 
-    // 🔴 【多人数化用に追加】プレイヤーの移動終了後にマネージャーからボタンを復活させる
     public void EnableDiceButton()
     {
         if (rollButton != null) rollButton.interactable = true;
