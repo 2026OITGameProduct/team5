@@ -786,7 +786,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1519098176}
   - component: {fileID: 1519098175}
-  - component: {fileID: 1519098177}
   m_Layer: 0
   m_Name: Audio Source
   m_TagString: Untagged
@@ -906,18 +905,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1519098177
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1519098174}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 148958290f88d734686e9a562c9c270a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SoundManager
 --- !u!1 &1719864545
 GameObject:
   m_ObjectHideFlags: 0
