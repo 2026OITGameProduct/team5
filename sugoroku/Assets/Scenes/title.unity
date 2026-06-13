@@ -625,8 +625,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -852,6 +852,21 @@ MonoBehaviour:
             m_StringArgument: 
             m_BoolArgument: 0
           m_CallState: 2
+--- !u!114 &1252264824
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1252264821}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
+  m_EffectColor: {r: 0.509434, g: 0.30814347, b: 0.16436455, a: 1}
+  m_EffectDistance: {x: 3, y: -3}
+  m_UseGraphicAlpha: 1
 --- !u!1 &1519098174
 GameObject:
   m_ObjectHideFlags: 0
@@ -1257,8 +1272,24 @@ PrefabInstance:
     m_TransformParent: {fileID: 480615407}
     m_Modifications:
     - target: {fileID: 1109643506640744052, guid: d366c00932baed34782737dd69a983bf, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
+    - target: {fileID: 1109643506640744052, guid: d366c00932baed34782737dd69a983bf, type: 3}
       propertyPath: m_Color.a
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1109643506640744052, guid: d366c00932baed34782737dd69a983bf, type: 3}
+      propertyPath: m_Color.b
+      value: 0.41757914
+      objectReference: {fileID: 0}
+    - target: {fileID: 1109643506640744052, guid: d366c00932baed34782737dd69a983bf, type: 3}
+      propertyPath: m_Color.g
+      value: 0.61946285
+      objectReference: {fileID: 0}
+    - target: {fileID: 1109643506640744052, guid: d366c00932baed34782737dd69a983bf, type: 3}
+      propertyPath: m_Color.r
+      value: 0.8415094
       objectReference: {fileID: 0}
     - target: {fileID: 5092486563640452375, guid: d366c00932baed34782737dd69a983bf, type: 3}
       propertyPath: m_Transition
@@ -1397,12 +1428,32 @@ PrefabInstance:
       value: 40
       objectReference: {fileID: 0}
     - target: {fileID: 6167979597057459176, guid: d366c00932baed34782737dd69a983bf, type: 3}
+      propertyPath: m_fontStyle
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6167979597057459176, guid: d366c00932baed34782737dd69a983bf, type: 3}
+      propertyPath: m_fontColor.b
+      value: 0.9622642
+      objectReference: {fileID: 0}
+    - target: {fileID: 6167979597057459176, guid: d366c00932baed34782737dd69a983bf, type: 3}
+      propertyPath: m_fontColor.g
+      value: 0.9622642
+      objectReference: {fileID: 0}
+    - target: {fileID: 6167979597057459176, guid: d366c00932baed34782737dd69a983bf, type: 3}
+      propertyPath: m_fontColor.r
+      value: 0.9622642
+      objectReference: {fileID: 0}
+    - target: {fileID: 6167979597057459176, guid: d366c00932baed34782737dd69a983bf, type: 3}
       propertyPath: m_fontSizeBase
       value: 40
       objectReference: {fileID: 0}
     - target: {fileID: 6167979597057459176, guid: d366c00932baed34782737dd69a983bf, type: 3}
       propertyPath: m_enableAutoSizing
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6167979597057459176, guid: d366c00932baed34782737dd69a983bf, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4294309365
       objectReference: {fileID: 0}
     - target: {fileID: 7683110422453985465, guid: d366c00932baed34782737dd69a983bf, type: 3}
       propertyPath: m_Name
@@ -1418,6 +1469,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7683110422453985465, guid: d366c00932baed34782737dd69a983bf, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1252264823}
+    - targetCorrespondingSourceObject: {fileID: 7683110422453985465, guid: d366c00932baed34782737dd69a983bf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1252264824}
   m_SourcePrefab: {fileID: 100100000, guid: d366c00932baed34782737dd69a983bf, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
