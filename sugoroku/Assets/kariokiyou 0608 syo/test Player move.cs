@@ -1,72 +1,80 @@
 using System.Collections;
-using TMPro; // 💡 TextMeshProを使うために追加
+using TMPro; 
 using UnityEngine;
 
 public class LoopSugorokuPlayer : MonoBehaviour
 {
-    [SerializeField] private Transform[] routeWaypoints; // 必ず12マスのインスペクターを設定
+    [SerializeField] private Transform[] routeWaypoints; 
     [SerializeField] private float moveSpeed = 5f;
 
-    // 💡 インスペクターからText（TextMeshPro）を紐付けるための変数
     [SerializeField] private TextMeshProUGUI scoreText;
     [SerializeField] private TextMeshProUGUI lapText;
-    [SerializeField] private TextMeshProUGUI logText; // ログ（アナウンス）表示用
+    [SerializeField] private TextMeshProUGUI logText; 
 
     private int currentWaypointIndex = 0;
     private bool isMoving = false;
     private bool isGoal = false;
 
-    private Vector3 playerOffset; // 💡 複数人が重ならないためのズレ幅
+    // 💡【新機能！】効果で動かされたかどうかを記録するフラグ
+    private bool isForcedMoving = false; 
 
-    // プレイヤーの戦績データ
+    private Vector3 playerOffset; 
+    private EventPopupManager popupManager; 
+
     public int score { get; private set; } = 0;
     public int lapCount { get; private set; } = 0;
 
-    // 🔴 マネージャーから呼び出される初期化メソッド
-public void SetupPlayer(Transform[] waypoints, int id, TMPro.TextMeshProUGUI sText, TMPro.TextMeshProUGUI lText, TMPro.TextMeshProUGUI logTxt)
+    private void Awake()
+    {
+        popupManager = Object.FindAnyObjectByType<EventPopupManager>();
+    }
+
+    public void SetupPlayer(Transform[] waypoints, int id, TMPro.TextMeshProUGUI sText, TMPro.TextMeshProUGUI lText, TMPro.TextMeshProUGUI logTxt)
     {
         this.routeWaypoints = waypoints;
         this.scoreText = sText;
         this.lapText = lText;
         this.logText = logTxt;
-
-        // 💡 1P, 2P...が同じマスで重ならないように少しだけ位置をずらす設定
         this.playerOffset = new Vector3((id % 2) * 0.4f, 1f, (id / 2) * 0.4f);
 
-        // スタート位置（0番目のマス）に配置
         currentWaypointIndex = 0;
         if (routeWaypoints != null && routeWaypoints.Length > 0)
         {
             transform.position = routeWaypoints[0].position + playerOffset;
         }
-
-        // UIの更新メソッドがあれば実行（なければコメントアウトしてください）
         UpdateUI();
     }
+
     private void Start()
     {
-        // 💡 ゲーム開始時にUIを初期化
         UpdateUI();
         if (logText != null) logText.text = "ゲームスタート！ダイスを振ってください。";
     }
 
-    // 💡 UIの表示を最新の状態に更新するメソッド
     private void UpdateUI()
     {
         if (scoreText != null) scoreText.text = $"ポイント: {score} pt";
         if (lapText != null) lapText.text = $"{lapCount} 周目";
     }
 
+    // 💡 通常のサイコロ移動（イベントを受け付ける）
     public void MoveSteps(int steps)
     {
-        if (isGoal)
+        if (isGoal) return;
+        if (!isMoving) 
         {
-            Debug.Log("すでにゴールしています！");
-            return;
+            isForcedMoving = false; // 自分のサイコロで動くのでフラグをリセット
+            StartCoroutine(MoveRoutine(steps));
         }
+    }
 
-        if (!isMoving)
+    // 💡【新機能！】イベントの効果で移動させるときはこっちを呼び出す
+    public void MoveStepsByEvent(int steps)
+    {
+        if (isGoal) return;
+        if (!isMoving) 
         {
+            isForcedMoving = true; // 「効果で動かされたよ！」という目印をつける
             StartCoroutine(MoveRoutine(steps));
         }
     }
@@ -77,33 +85,26 @@ public void SetupPlayer(Transform[] waypoints, int id, TMPro.TextMeshProUGUI sTe
 
         for (int i = 0; i < steps; i++)
         {
-            //12マス(配列の末尾)を超えたら0に戻す
             int nextIndex = (currentWaypointIndex + 1) % routeWaypoints.Length;
-            //インデックスが0に戻る=スタートマス(ゴール)を通過する瞬間
             if (nextIndex == 0)
             {
-                //[重要]通過する「前」の時点で3ポイント持っているかチェック
                 if (score >= 3)
                 {
                     isGoal = true;
                     currentWaypointIndex = 0;
                     transform.position = routeWaypoints[0].position + playerOffset;
-
                     string clearMsg = "🎉 3ポイント持ってゴール通過！ゲームクリア！ 🎉";
-                    Debug.Log(clearMsg);
-                    if (logText != null) logText.text = clearMsg; // 💡 画面に表示
-
+                    if (logText != null) logText.text = clearMsg; 
                     isMoving = false;
-                    UpdateUI(); // 💡 ゴール時の状態を反映
-                    yield break; //残りの移動をキャンセルして終了
+                    UpdateUI(); 
+                    yield break; 
                 }
-                //3pt未満なら通常通り集会ボーナスをもらって進む
                 OnLapPassed();
             }
 
             currentWaypointIndex = nextIndex;
             Vector3 targetPosition = routeWaypoints[currentWaypointIndex].position + playerOffset;
-            // 1マス分の移動処理
+            
             while (Vector3.Distance(transform.position, targetPosition) > 0.01f)
             {
                 transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
@@ -115,51 +116,68 @@ public void SetupPlayer(Transform[] waypoints, int id, TMPro.TextMeshProUGUI sTe
         }
 
         isMoving = false;
-        // マスに「着地」したときのイベント判定
 
-        OnLandOnWaypoint(currentWaypointIndex);
+        // 💡【今回のメイン対策！】
+        // もし「イベントの効果で移動してきた（isForcedMovingがtrue）」なら、ポップアップは出さずに素通りする
+        if (isForcedMoving)
+        {
+            // 効果を受けずに、通常のプラス・マイナスの基礎計算だけして終了
+            OnLandOnWaypoint(currentWaypointIndex);
+            isForcedMoving = false; // 次のターンのためにフラグを元に戻しておく
+            yield break; // ここで処理を終了（ポップアップを出さない）
+        }
+
+        // 💡 通常のサイコロ移動の時だけ、いつも通りポップアップを出す
+        GameObject currentMasuObject = routeWaypoints[currentWaypointIndex].gameObject;
+        MasuEvent masuEvent = currentMasuObject.GetComponentInChildren<MasuEvent>();
+
+        if (popupManager != null)
+        {
+            Sprite imageToShow = (masuEvent != null) ? masuEvent.eventImage : null;
+
+            popupManager.ShowEventPopup(imageToShow, () =>
+            {
+                OnLandOnWaypoint(currentWaypointIndex);
+
+                if (masuEvent != null)
+                {
+                    masuEvent.OnPlayerStop(this);
+                }
+            });
+        }
+        else
+        {
+            OnLandOnWaypoint(currentWaypointIndex);
+        }
     }
-    // 周回（通過）したときの処理
+
     private void OnLapPassed()
     {
         lapCount++;
-        score += 1; // 周回ボーナスとして1pt
-
-        string msg = $"周回ボーナス！ +1pt (合計:{score}pt)";
-        Debug.Log(msg);
-        if (logText != null) logText.text = msg; // 💡 画面に表示
-
-        UpdateUI(); // 💡数値を変更したらUIを更新
+        score += 1; 
+        UpdateUI(); 
     }
-    //マスに止まったときの処理
+
     private void OnLandOnWaypoint(int waypointIndex)
     {
-        // 3番目と9番目のマスは「プラスマス」
         if (waypointIndex == 3 || waypointIndex == 9)
         {
             score += 1;
             string msg = $"プラスマスに到着！ +1pt (合計:{score}pt)";
-            Debug.Log(msg);
             if (logText != null) logText.text = msg;
         }
-        // 6番目のマスは「マイナスマス」
         else if (waypointIndex == 6)
         {
-            score = Mathf.Max(0, score - 1);// スコアがマイナスにならないようにする
+            score = Mathf.Max(0, score - 1);
             string msg = $"マイナスマスに到着... -1pt (合計:{score}pt)";
-            Debug.Log(msg);
-            if (logText != null) logText.text = msg;
-        }
-        //もし「3pt持った状態でスタートマスにぴったり止まった時」もクリアにしたい場合はここを有効に
-        if (waypointIndex == 0 && score >= 3)
-        if (waypointIndex == 0 && score >= 3)
-        {
-            isGoal = true;
-            string msg = "🎉 3ポイント持ってスタートにピッタリ停止！ゲームクリア！ 🎉";
-            Debug.Log(msg);
             if (logText != null) logText.text = msg;
         }
 
-        UpdateUI(); // 💡数値を変更したらUIを更新
+        if (waypointIndex == 0 && score >= 3)
+        {
+            isGoal = true;
+        }
+
+        UpdateUI(); 
     }
 }
