@@ -1,6 +1,7 @@
 using System.Collections;
 using TMPro; 
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class LoopSugorokuPlayer : MonoBehaviour
 {
@@ -96,6 +97,7 @@ public class LoopSugorokuPlayer : MonoBehaviour
                     string clearMsg = "🎉 3ポイント持ってゴール通過！ゲームクリア！ 🎉";
                     if (logText != null) logText.text = clearMsg; 
                     isMoving = false;
+                    SceneManager.LoadScene("ResultScene");
                     UpdateUI(); 
                     yield break; 
                 }
