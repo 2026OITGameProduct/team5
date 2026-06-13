@@ -744,7 +744,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 32e9baad0db39be4ea96388ff052b07f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  playerPrefab: {fileID: 4228678527253167877, guid: 46e4bb79e61808049a6b5c27ec5b4f3d, type: 3}
+  playerPrefabs:
+  - {fileID: 4228678527253167877, guid: 46e4bb79e61808049a6b5c27ec5b4f3d, type: 3}
+  - {fileID: 4228678527253167877, guid: b86ec2eac433b2440ab28da272c28eda, type: 3}
+  - {fileID: 4228678527253167877, guid: 9fb2c62ad2bb23243ba6a31178e284a4, type: 3}
+  - {fileID: 4228678527253167877, guid: 54e762ac8ff02154897c34ebce5f68d5, type: 3}
+  - {fileID: 4228678527253167877, guid: 9d7ba50e79ec18c4bb4e5ed051115793, type: 3}
+  - {fileID: 4228678527253167877, guid: d48ea883692e46a4683b017dd0174afd, type: 3}
   waypoints:
   - {fileID: 426383655}
   - {fileID: 1949038589}
