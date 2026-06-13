@@ -17,16 +17,13 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
     private int currentWaypointIndex = 0;
     private bool isMoving = false;
-    private bool isGoal = false;
+    private bool isGoal = false; 
 
-    // 💡【新機能！】効果で動かされたかどうかを記録するフラグ
     private bool isForcedMoving = false;
 
-    // 【メンバーのコードに対応！】 score を外部（MasuEvent）から直接書き換えられるように「set」を解放
     public int score { get; set; } = 0;
     public int lapCount { get; private set; } = 0;
 
-    // 【メンバーのコードに対応！】 1回休みフラグの名前をメンバーの「isSkippingNextTurn」に統一
     public bool isSkippingNextTurn { get; set; } = false;
 
     private Vector3 playerOffset;
@@ -64,52 +61,47 @@ public class LoopSugorokuPlayer : MonoBehaviour
         if (logText != null) logText.text = "ゲームスタート！ダイスを振ってください。";
     }
 
-    // 【メンバーのコードに対応！】 MasuEventから呼び出せるように「public」に変更
     public void UpdateUI()
     {
         if (scoreText != null) scoreText.text = $"ポイント: {score} pt";
         if (lapText != null) lapText.text = $"{lapCount} 周目";
     }
 
-    // 💡 通常のサイコロ移動（イベントを受け付ける）
     public void MoveSteps(int steps)
     {
         if (isGoal) return;
 
-        // 1回休みフラグ（メンバーの名前）が立っていたら、動かずに手番をスキップする
         if (isSkippingNextTurn)
         {
-            isSkippingNextTurn = false; // フラグを戻して次のターンは動けるようにする
+            isSkippingNextTurn = false; 
             if (logText != null) logText.text = $"{gameObject.name}は1回休みです！";
             return;
         }
 
         if (!isMoving)
         {
-            isForcedMoving = false; // 自分のサイコロで動くのでフラグをリセット
+            isForcedMoving = false; 
             StartCoroutine(MoveRoutine(steps));
         }
     }
 
-    // 💡【新機能！】イベントの効果で移動させるときはこっちを呼び出す
     public void MoveStepsByEvent(int steps)
     {
         if (isGoal) return;
         if (!isMoving)
         {
-            isForcedMoving = true; // 「効果で動かされたよ！」という目印をつける
+            isForcedMoving = true; 
             StartCoroutine(MoveRoutine(steps));
         }
     }
 
-    // 【メンバーのコードに対応！】 2マス戻る専用の命令を新設
     public void MoveBackStepsByEvent(int steps)
     {
         if (isGoal) return;
         if (!isMoving)
         {
             isForcedMoving = true;
-            StartCoroutine(MoveRoutine(-steps)); // マイナスにして移動ルーチンに渡す
+            StartCoroutine(MoveRoutine(-steps)); 
         }
     }
 
@@ -119,6 +111,7 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
         int direction = (steps > 0) ? 1 : -1;
         int absoluteSteps = Mathf.Abs(steps);
+        bool passedStartThisTurn = false; 
 
         for (int i = 0; i < absoluteSteps; i++)
         {
@@ -126,18 +119,12 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
             if (direction == 1 && nextIndex == 0)
             {
-                if (score >= 3)
-                {
-                    isGoal = true;
-                    currentWaypointIndex = 0;
-                    transform.position = routeWaypoints[0].position + playerOffset;
-                    string clearMsg = "🎉 3ポイント持ってゴール通過！ゲームクリア！ 🎉";
-                    if (logText != null) logText.text = clearMsg;
-                    isMoving = false;
-                    UpdateUI();
-                    yield break;
-                }
                 OnLapPassed();
+
+                if (i < absoluteSteps - 1)
+                {
+                    passedStartThisTurn = true;
+                }
             }
 
             currentWaypointIndex = nextIndex;
@@ -165,19 +152,49 @@ public class LoopSugorokuPlayer : MonoBehaviour
         if (isForcedMoving)
         {
             isForcedMoving = false;
-            yield break; // 効果移動時は進んだ先のマスの効果は発動しない
+            yield break; 
         }
 
+        // ==========================================================
+        // 🛠️ 修正部分：ポップアップが重なってパニックを起こすのを防ぐ
+        // ==========================================================
+
+        // ①【もし移動の途中でスタートマスを通過していた場合】
+        if (passedStartThisTurn)
+        {
+            GameObject startMasu = routeWaypoints[0].gameObject;
+            MasuEvent startEvent = startMasu.GetComponentInChildren<MasuEvent>();
+
+            if (startEvent != null && popupManager != null)
+            {
+                bool startPopupClosed = false; 
+
+                popupManager.ShowEventPopup(startEvent.eventImage, startEvent.masuEventSound, () =>
+                {
+                    startEvent.OnPlayerStop(this);
+                    startPopupClosed = true; 
+                });
+
+                // プレイヤーがOKを押すのを待つ
+                yield return new WaitUntil(() => startPopupClosed);
+
+                // 🔴【超重要！】
+                // 1枚目のポップアップが「閉じるアニメーション（0.5秒）」を終えるまで、
+                // 2枚目を出すのをちょっとだけ（0.6秒）待ってあげます。
+                // これでボタン表示がごちゃ混ぜになるバグが完全に消え去ります！
+                yield return new WaitForSeconds(0.6f);
+            }
+        }
+
+        // ②【最後に、いま現在止まっているマスのイベントを実行】
         GameObject currentMasuObject = routeWaypoints[currentWaypointIndex].gameObject;
         MasuEvent masuEvent = currentMasuObject.GetComponentInChildren<MasuEvent>();
 
         if (popupManager != null)
         {
             Sprite imageToShow = (masuEvent != null) ? masuEvent.eventImage : null;
-            // 🔴 【新設】マスに設定されている効果音を取得する（無ければnull）
             AudioClip soundToShow = (masuEvent != null) ? masuEvent.masuEventSound : null;
 
-            // 🔴 【新設】新しく作った音源付きのShowEventPopupを呼び出す
             popupManager.ShowEventPopup(imageToShow, soundToShow, () =>
             {
                 if (masuEvent != null)

@@ -1,150 +1,164 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro; // ボタンの文字を変えるために追加
+using TMPro; 
 
-public class DiceController : MonoBehaviour
+public class dicesystem : MonoBehaviour
 {
     [Header("UIコンポーネント")]
-    [SerializeField] private Image diceImage;       // 出目を表示するUIのImage
-    [SerializeField] private Button rollButton;     // サイコロを振るボタン
-    [SerializeField] private TextMeshProUGUI buttonText; // ボタンのテキスト（「サイコロを振る」や「OK」に書き換える用）
+    [SerializeField] private Image diceImage;       
+    [SerializeField] private Button rollButton;     
+    [SerializeField] private TextMeshProUGUI buttonText; 
 
     [Header("サイコロ画像（1〜6の順番でセット）")]
-    [SerializeField] private Sprite[] diceSprites;  // 要素数6の配列
+    [SerializeField] private Sprite[] diceSprites;  
 
     [Header("演出設定")]
-    [SerializeField] private float rollDuration = 1.0f; // シャッフルする時間（秒）
-    [SerializeField] private float shuffleInterval = 0.05f; // 画像が切り替わる速度
+    [SerializeField] private float rollDuration = 1.0f; 
+    [SerializeField] private float shuffleInterval = 0.05f; 
 
     [Header("オーディオ設定")]
-    // 🔴 【新設】効果音の音源ファイルをインスペクターで登録するための枠
     [SerializeField] private AudioClip rollSound;
-    // 🔴 【新設】スピーカー役のコンポーネントを引っ張ってくるための枠
     [SerializeField] private AudioSource audioSource;
 
-    // プレイヤーへの参照（出目を渡すため）
     [SerializeField] private LoopSugorokuPlayer player;
-
-    // 【多人数化用に追加】マネージャーへの参照
     [SerializeField] private SugorokuManager sugorokuManager;
 
     private bool isRolling = false;
-
-    // 【新設】現在ボタンが「OKボタン」の役割になっているかどうかのフラグ
-    private bool isOkMode = false;
+    private bool isOkMode = false; 
 
     private void Start()
     {
-        // ボタンにクリックイベントを登録
         if (rollButton != null)
         {
             rollButton.onClick.AddListener(OnRollButtonClick);
         }
-        UpdateVectorButtonText("サイコロを振る"); // 最初はサイコロモード
+        UpdateVectorButtonText("サイコロを振る"); 
 
-        // 🔴 もしインスペクターでAudioSourceが空っぽだったら、自分についているものを自動で取得する安全装置
         if (audioSource == null)
         {
             audioSource = GetComponent<AudioSource>();
         }
     }
 
-    // ボタンが押された時の処理
     public void OnRollButtonClick()
     {
-        // 【新設】もし今が「OKボタンモード」なら、ポップアップを閉じる処理を実行する
         if (isOkMode)
         {
             EventPopupManager popup = Object.FindAnyObjectByType<EventPopupManager>();
             if (popup != null)
             {
-                isOkMode = false; // モードを戻す
-                popup.OnOkButtonPressed(); // EventPopupManagerのOK処理を身代わりで実行
+                isOkMode = false; 
+                popup.OnOkButtonPressed(); 
             }
             return;
         }
 
         if (isRolling) return;
 
-        // 🔴 【ここが本番！】サイコロが回り始める瞬間に効果音を鳴らす！
+        if (CheckSkipTurn())
+        {
+            return; 
+        }
+
         if (audioSource != null && rollSound != null)
         {
-            audioSource.PlayOneShot(rollSound);
             audioSource.PlayOneShot(rollSound);
         }
 
         StartCoroutine(RollDiceRoutine());
     }
 
+    private bool CheckSkipTurn()
+    {
+        LoopSugorokuPlayer targetPlayer = null;
+
+        if (sugorokuManager != null)
+        {
+            targetPlayer = sugorokuManager.GetCurrentPlayer();
+        }
+        else
+        {
+            targetPlayer = player;
+        }
+
+        if (targetPlayer != null && targetPlayer.isSkippingNextTurn)
+        {
+            Debug.Log($"🚫 {targetPlayer.name} は1回休みです！パスします。");
+            targetPlayer.isSkippingNextTurn = false;
+
+            if (sugorokuManager != null)
+            {
+                sugorokuManager.OnDiceRolled(0); 
+            }
+            else
+            {
+                if (rollButton != null) rollButton.interactable = true;
+            }
+
+            return true; 
+        }
+
+        return false; 
+    }
+
     private IEnumerator RollDiceRoutine()
     {
         isRolling = true;
-        rollButton.interactable = false; // 連打防止でボタンを無効化
+        rollButton.interactable = false; 
 
         float timer = 0f;
         int lastRandomIndex = -1;
         int finalResult = 1;
 
-        // 指定した時間（rollDuration）の間、画像を高速でシャッフルする
         while (timer < rollDuration)
         {
             int randomIndex;
-            // 前のフレームと同じ画像が連続で選ばれないようにする工夫
             do
             {
-                randomIndex = Random.Range(0, 6); // 0〜5のインデックス
+                randomIndex = Random.Range(0, 6); 
             } while (randomIndex == lastRandomIndex);
 
             lastRandomIndex = randomIndex;
-            diceImage.sprite = diceSprites[randomIndex]; // 画像を変更
+            diceImage.sprite = diceSprites[randomIndex]; 
 
             timer += shuffleInterval;
             yield return new WaitForSeconds(shuffleInterval);
         }
 
-        // 【最終決定】1〜6のランダムな出目を決定
-        finalResult = Random.Range(1, 7); // 1〜6の整数
-
-        // 確定した出目の画像をセット（配列は0から始まるので -1 する）
+        finalResult = Random.Range(1, 7); 
         diceImage.sprite = diceSprites[finalResult - 1];
 
         Debug.Log($"サイコロの出目: {finalResult}");
 
-        yield return new WaitForSeconds(0.5f); // 確定目を少し見せるためのウェイト
+        yield return new WaitForSeconds(0.5f); 
 
-        // プレイヤーを移動させる（前回のスクリプトを呼び出す）
         if (sugorokuManager != null)
         {
-            // 多人数時はマネージャーに出目を渡して現在のプレイヤーを動かす
             sugorokuManager.OnDiceRolled(finalResult);
         }
         else if (player != null)
         {
-            // （予備用）もしマネージャーがいなければ、元の単体プレイヤーを動かす
-            player.MoveSteps(finalResult); // 確定した出目の数を渡す
-            rollButton.interactable = true; // ボタンを再度有効化
+            player.MoveSteps(finalResult); 
+            rollButton.interactable = true; 
         }
 
         isRolling = false;
     }
 
-    // 【多人数化用に追加】プレイヤーの移動終了後にマネージャーからボタンを復活させる
     public void EnableDiceButton()
     {
         if (rollButton != null) rollButton.interactable = true;
-        UpdateVectorButtonText("サイコロを振る"); // サイコロモードの文字に戻す
+        UpdateVectorButtonText("サイコロを振る"); 
     }
 
-    // 【新設】外部からボタンを「OKボタンモード」に変身させるための窓口
     public void SwitchToOkMode()
     {
         isOkMode = true;
-        if (rollButton != null) rollButton.interactable = true; // ボタンを押せるようにする
-        UpdateVectorButtonText("次へ"); // ボタンの文字を「次へ」に変える
+        if (rollButton != null) rollButton.interactable = true; 
+        UpdateVectorButtonText("次へ"); 
     }
 
-    // 【新設】ボタンの文字を安全に書き換える用のメソッド
     private void UpdateVectorButtonText(string text)
     {
         if (buttonText != null) buttonText.text = text;
