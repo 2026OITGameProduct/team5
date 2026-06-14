@@ -4,6 +4,7 @@ using TMPro; // TextMeshProを使うために必要
 public class PlayerSelect : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI playerCountText; // 人数表示用テキスト
+    [SerializeField] private IconManager iconManager; // ★追加：新しいスクリプトを登録する枠
 
     private int playerCount = 1; // 現在の人数（初期値は1人）
     private int minPlayers = 1; // 最小人数
@@ -12,6 +13,7 @@ public class PlayerSelect : MonoBehaviour
     void Start()
     {
         UpdateText();
+        iconManager.UpdateIcons(playerCount); // ★追加：ゲーム開始時のアイコン状態
     }
 
     // ＋ボタンが押されたときの処理
@@ -21,6 +23,7 @@ public class PlayerSelect : MonoBehaviour
         {
             playerCount++;
             UpdateText();
+            iconManager.UpdateIcons(playerCount); // ★追加：人数が増えたのでアイコン更新
         }
     }
 
@@ -31,6 +34,7 @@ public class PlayerSelect : MonoBehaviour
         {
             playerCount--;
             UpdateText();
+            iconManager.UpdateIcons(playerCount); // ★追加：人数が減ったのでアイコン更新
         }
     }
 
