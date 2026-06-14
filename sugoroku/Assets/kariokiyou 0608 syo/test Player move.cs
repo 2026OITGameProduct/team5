@@ -17,11 +17,18 @@ public class LoopSugorokuPlayer : MonoBehaviour
     [SerializeField] private AudioClip moveSound;
     [SerializeField] private AudioSource audioSource;
 
+    [Header("ゴール演出の設定")]
+    [SerializeField] private GameObject confettiEffect;
+    [SerializeField] private TextMeshProUGUI winTextUI;
+
     private int currentWaypointIndex = 0;
     private bool isMoving = false;
     private bool isGoal = false;
 
     private bool isForcedMoving = false;
+
+    // 🔴 【新設】マネージャーから受け取った自分のプレイヤー名を記憶する変数
+    private string playerName = "";
 
     public int score { get; set; } = 0;
     public int lapCount { get; private set; } = 0;
@@ -44,12 +51,14 @@ public class LoopSugorokuPlayer : MonoBehaviour
         }
     }
 
-    public void SetupPlayer(Transform[] waypoints, int id, TMPro.TextMeshProUGUI sText, TMPro.TextMeshProUGUI lText, TMPro.TextMeshProUGUI logTxt)
+    // 🔴 引数の最後に「string pName」を追加して、名前を受け取れるように拡張しました！
+    public void SetupPlayer(Transform[] waypoints, int id, TextMeshProUGUI sText, TextMeshProUGUI lText, TextMeshProUGUI logTxt, string pName)
     {
         this.routeWaypoints = waypoints;
         this.scoreText = sText;
         this.lapText = lText;
         this.logText = logTxt;
+        this.playerName = pName; // 🔴 名前を記憶！
         this.playerOffset = new Vector3((id % 2) * 0.4f, 1f, (id / 2) * 0.4f);
 
         currentWaypointIndex = 0;
@@ -64,11 +73,18 @@ public class LoopSugorokuPlayer : MonoBehaviour
     {
         UpdateUI();
         if (logText != null) logText.text = "ゲームスタート！ダイスを振ってください。";
+
+        if (winTextUI != null) winTextUI.gameObject.SetActive(false);
+        if (confettiEffect != null) confettiEffect.SetActive(false);
     }
 
     public void UpdateUI()
     {
-        if (scoreText != null) scoreText.text = $"ポイント: {score} pt";
+        // 🔴 【ここが本番！】「プレイヤー名: 〇 pt」という表記に変更しました！
+        // もし名前がまだ登録されていなければ、オブジェクト名（1Pなど）を代わりに使います
+        string dispName = string.IsNullOrEmpty(playerName) ? gameObject.name : playerName;
+
+        if (scoreText != null) scoreText.text = $"{dispName}: {score} pt";
         if (lapText != null) lapText.text = $"{lapCount} 周目";
     }
 
@@ -122,17 +138,14 @@ public class LoopSugorokuPlayer : MonoBehaviour
         {
             int nextIndex = (currentWaypointIndex + direction + routeWaypoints.Length) % routeWaypoints.Length;
 
-            // 前進中にスタートマス（インデックス0）をまたいだ瞬間（通過時）
             if (direction == 1 && nextIndex == 0)
             {
                 OnLapPassed();
 
-                // 【追加ルール：通過時チェック】
-                // スタートを通過した時点で3pt以上持っていたら、即リザルト画面へ！
                 if (score >= 3)
                 {
-                    SceneManager.LoadScene("ResultScene");
-                    yield break; // 遷移するのでコルーチンを強制終了
+                    yield return StartCoroutine(GoalPerformanceRoutine());
+                    yield break;
                 }
 
                 if (i < absoluteSteps - 1)
@@ -144,15 +157,12 @@ public class LoopSugorokuPlayer : MonoBehaviour
             currentWaypointIndex = nextIndex;
             Vector3 targetPosition = routeWaypoints[currentWaypointIndex].position + playerOffset;
 
-            // 🔴【合体機能！】次のマスの方角を計算して、動き出す直前にシュッと振り向かせる
             Vector3 directionVector = targetPosition - transform.position;
-            directionVector.y = 0; // 首の上下の傾きは無視して、水平に回転させる
+            directionVector.y = 0;
 
             if (directionVector != Vector3.zero)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(directionVector);
-
-                // 0.1秒かけて滑らかに向き直る（テンポを損なわない絶妙な速度です）
                 float rotationTimer = 0f;
                 Quaternion startRotation = transform.rotation;
                 while (rotationTimer < 0.1f)
@@ -161,17 +171,15 @@ public class LoopSugorokuPlayer : MonoBehaviour
                     transform.rotation = Quaternion.Slerp(startRotation, targetRotation, rotationTimer / 0.1f);
                     yield return null;
                 }
-                transform.rotation = targetRotation; // 最後に角度を完全にピッタリ合わせる
+                transform.rotation = targetRotation;
             }
 
-            // 動き出す瞬間（タイミング前倒し）の移動音
             if (audioSource != null && moveSound != null)
             {
                 audioSource.PlayOneShot(moveSound);
                 audioSource.PlayOneShot(moveSound);
             }
 
-            // 実際に次のマスへスーッと移動する
             while (Vector3.Distance(transform.position, targetPosition) > 0.01f)
             {
                 transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
@@ -191,7 +199,6 @@ public class LoopSugorokuPlayer : MonoBehaviour
             yield break;
         }
 
-        // ①【もし移動の途中でスタートマスを通過していた場合】
         if (passedStartThisTurn)
         {
             isProcessingComboEvent = true;
@@ -214,19 +221,15 @@ public class LoopSugorokuPlayer : MonoBehaviour
             }
         }
 
-        // ②【最後に、いま現在止まっているマスのイベントを実行】
         GameObject currentMasuObject = routeWaypoints[currentWaypointIndex].gameObject;
         MasuEvent masuEvent = currentMasuObject.GetComponentInChildren<MasuEvent>();
 
-        // 【追加ルール：ぴったり停止時チェック】
-        // 止まったマスがスタートマス（0番）で、かつ3pt以上持っていたら即リザルト画面へ！
         if (currentWaypointIndex == 0 && score >= 3)
         {
-            SceneManager.LoadScene("ResultScene");
+            yield return StartCoroutine(GoalPerformanceRoutine());
             yield break;
         }
 
-        // スタートマスにぴったり止まった場合も連続イベントの起点としてロックをかける
         if (currentWaypointIndex == 0)
         {
             isProcessingComboEvent = true;
@@ -250,7 +253,6 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
             yield return new WaitUntil(() => endPopupClosed);
 
-            // スタートを「通過」または「ぴったり停止」していた場合のアフターケア
             if (passedStartThisTurn || currentWaypointIndex == 0)
             {
                 isProcessingComboEvent = false;
@@ -275,10 +277,34 @@ public class LoopSugorokuPlayer : MonoBehaviour
         }
     }
 
+    private IEnumerator GoalPerformanceRoutine()
+    {
+        isGoal = true;
+
+        if (confettiEffect != null)
+        {
+            confettiEffect.SetActive(true);
+        }
+
+        if (winTextUI != null)
+        {
+            // 🔴 ここも記憶したカスタム名前（playerName）を使って表示するように強化！
+            string dispName = string.IsNullOrEmpty(playerName) ? gameObject.name : playerName;
+            winTextUI.text = $"🎉 {dispName} の勝利！ 🎉";
+            winTextUI.gameObject.SetActive(true);
+        }
+
+        string logName = string.IsNullOrEmpty(playerName) ? gameObject.name : playerName;
+        if (logText != null) logText.text = $"🎉 {logName}がゴールして勝利しました！ 🎉";
+
+        yield return new WaitForSeconds(3.0f);
+        SceneManager.LoadScene("ResultScene");
+    }
+
     private void OnLapPassed()
     {
         lapCount++;
-        score += 1; // 1周通過で+1pt（ここで3ptに達する可能性があります）
+        score += 1;
         UpdateUI();
     }
 

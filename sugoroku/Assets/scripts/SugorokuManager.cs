@@ -5,15 +5,14 @@ using UnityEngine;
 
 public class SugorokuManager : MonoBehaviour
 {
-    [SerializeField] private GameObject[] playerPrefabs; 
-    [SerializeField] private Transform[] waypoints;    
+    [SerializeField] private GameObject[] playerPrefabs;
+    [SerializeField] private Transform[] waypoints;
 
     [SerializeField] private TextMeshProUGUI[] scoreTexts;
     [SerializeField] private TextMeshProUGUI[] lapTexts;
     [SerializeField] private TextMeshProUGUI logText;
     [SerializeField] private string[] playerNames = new string[6];
 
-    // 🔴 型名をすべて小文字の「dicesystem」に修正しました
     [SerializeField] private dicesystem diceController;
 
     private List<LoopSugorokuPlayer> players = new List<LoopSugorokuPlayer>();
@@ -28,7 +27,7 @@ public class SugorokuManager : MonoBehaviour
             GameObject selectedPrefab;
             if (i < playerPrefabs.Length)
             {
-                selectedPrefab = playerPrefabs[i]; 
+                selectedPrefab = playerPrefabs[i];
             }
             else
             {
@@ -36,23 +35,31 @@ public class SugorokuManager : MonoBehaviour
             }
 
             GameObject obj = Instantiate(selectedPrefab);
-            obj.name = (i + 1) + "P"; 
+            obj.name = (i + 1) + "P";
 
             LoopSugorokuPlayer p = obj.GetComponent<LoopSugorokuPlayer>();
 
+            // 🔴 【修正】インスペクターの「Player Names」に書かれた名前を安全に取得する
+            string currentName = (i < playerNames.Length && !string.IsNullOrEmpty(playerNames[i]))
+                ? playerNames[i]
+                : (i + 1) + "P"; // もし空欄なら「1P」「2P」にする防衛策
+
             if (i < scoreTexts.Length && i < lapTexts.Length)
             {
-                p.SetupPlayer(waypoints, i, scoreTexts[i], lapTexts[i], logText);
+                // 🔴 最後の引数に「currentName」を追加してプレイヤーに名前を渡す！
+                p.SetupPlayer(waypoints, i, scoreTexts[i], lapTexts[i], logText, currentName);
             }
             else
             {
-                p.SetupPlayer(waypoints, i, scoreTexts[0], lapTexts[0], logText);
+                p.SetupPlayer(waypoints, i, scoreTexts[0], lapTexts[0], logText, currentName);
             }
 
             players.Add(p);
         }
 
-        if (logText != null) logText.text = "1Pの番です。サイコロを振ってください！";
+        // 🔴 ログテキストも「1Pの番です」から「最初のプレイヤー名」に連動するようにスマート化！
+        string firstPlayerName = (playerNames.Length > 0 && !string.IsNullOrEmpty(playerNames[0])) ? playerNames[0] : "1P";
+        if (logText != null) logText.text = $"{firstPlayerName}の番です。サイコロを振ってください！";
     }
 
     public LoopSugorokuPlayer GetCurrentPlayer()
@@ -72,12 +79,12 @@ public class SugorokuManager : MonoBehaviour
         }
 
         activePlayer.MoveSteps(diceNumber);
-        StartCoroutine(TurnChangeRoutine(diceNumber * 0.4f + 2.0f)); 
+        StartCoroutine(TurnChangeRoutine(diceNumber * 0.4f + 2.0f));
     }
 
     public void AdvanceTurn()
     {
-        StopAllCoroutines(); 
+        StopAllCoroutines();
         StartCoroutine(TurnChangeRoutine(0.1f));
     }
 
@@ -89,7 +96,12 @@ public class SugorokuManager : MonoBehaviour
 
         if (logText != null)
         {
-            logText.text = $"{playerNames[currentPlayerIndex]}の番です。サイコロを振ってください！";
+            // 🔴 念のためここも安全に名前を引っ張る形に統一
+            string nextPlayerName = (currentPlayerIndex < playerNames.Length && !string.IsNullOrEmpty(playerNames[currentPlayerIndex]))
+                ? playerNames[currentPlayerIndex]
+                : players[currentPlayerIndex].gameObject.name;
+
+            logText.text = $"{nextPlayerName}の番です。サイコロを振ってください！";
         }
 
         if (diceController != null)
