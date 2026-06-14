@@ -59,7 +59,6 @@ public class dicesystem : MonoBehaviour
                     currentPlayer = player;
                 }
 
-                // 🛠️ 修正：名前を IsLockingTurn() に統一しました！
                 // 連続イベントの真っ最中の場合は、次へモードを維持したままポップアップだけを閉じる
                 if (currentPlayer != null && currentPlayer.IsLockingTurn())
                 {
@@ -105,7 +104,11 @@ public class dicesystem : MonoBehaviour
 
         if (targetPlayer != null && targetPlayer.isSkippingNextTurn)
         {
-            Debug.Log($"🚫 {targetPlayer.name} は1回休みです！パスします。");
+            // 🛠️ 修正：targetPlayer.playerName を優先的に取得し、ログ表示をカスタム名に統一！
+            // test Player move.cs 側のプロパティ（playerName）と完全に同期させます
+            string displayName = !string.IsNullOrEmpty(targetPlayer.playerName) ? targetPlayer.playerName : targetPlayer.name;
+            Debug.Log($"🚫 {displayName} は1回休みです！パスします。");
+            
             targetPlayer.isSkippingNextTurn = false;
 
             if (sugorokuManager != null)

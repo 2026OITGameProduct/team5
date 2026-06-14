@@ -27,8 +27,8 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
     private bool isForcedMoving = false;
 
-    // 🔴 【新設】マネージャーから受け取った自分のプレイヤー名を記憶する変数
-    private string playerName = "";
+    // 外部のdicesystemやMasuEventからも名前を読み取れるようにpublic（ゲットのみ）に変更
+    public string playerName { get; private set; } = "";
 
     public int score { get; set; } = 0;
     public int lapCount { get; private set; } = 0;
@@ -51,14 +51,14 @@ public class LoopSugorokuPlayer : MonoBehaviour
         }
     }
 
-    // 🔴 引数の最後に「string pName」を追加して、名前を受け取れるように拡張しました！
+    // 引数の最後に「string pName」を追加して、名前を受け取れるように拡張しました！
     public void SetupPlayer(Transform[] waypoints, int id, TextMeshProUGUI sText, TextMeshProUGUI lText, TextMeshProUGUI logTxt, string pName)
     {
         this.routeWaypoints = waypoints;
         this.scoreText = sText;
         this.lapText = lText;
         this.logText = logTxt;
-        this.playerName = pName; // 🔴 名前を記憶！
+        this.playerName = pName; // 名前を記憶！
         this.playerOffset = new Vector3((id % 2) * 0.4f, 1f, (id / 2) * 0.4f);
 
         currentWaypointIndex = 0;
@@ -80,7 +80,7 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
     public void UpdateUI()
     {
-        // 🔴 【ここが本番！】「プレイヤー名: 〇 pt」という表記に変更しました！
+        // 「プレイヤー名: 〇 pt」という表記に変更しました！
         // もし名前がまだ登録されていなければ、オブジェクト名（1Pなど）を代わりに使います
         string dispName = string.IsNullOrEmpty(playerName) ? gameObject.name : playerName;
 
@@ -95,7 +95,8 @@ public class LoopSugorokuPlayer : MonoBehaviour
         if (isSkippingNextTurn)
         {
             isSkippingNextTurn = false;
-            if (logText != null) logText.text = $"{gameObject.name}は1回休みです！";
+            string dispName = string.IsNullOrEmpty(playerName) ? gameObject.name : playerName;
+            if (logText != null) logText.text = $"{dispName}は1回休みです！";
             return;
         }
 
@@ -162,6 +163,7 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
             if (directionVector != Vector3.zero)
             {
+                // 🔄 向きを変える演出
                 Quaternion targetRotation = Quaternion.LookRotation(directionVector);
                 float rotationTimer = 0f;
                 Quaternion startRotation = transform.rotation;
@@ -286,16 +288,15 @@ public class LoopSugorokuPlayer : MonoBehaviour
             confettiEffect.SetActive(true);
         }
 
+        string dispName = string.IsNullOrEmpty(playerName) ? gameObject.name : playerName;
+
         if (winTextUI != null)
         {
-            // 🔴 ここも記憶したカスタム名前（playerName）を使って表示するように強化！
-            string dispName = string.IsNullOrEmpty(playerName) ? gameObject.name : playerName;
             winTextUI.text = $"🎉 {dispName} の勝利！ 🎉";
             winTextUI.gameObject.SetActive(true);
         }
 
-        string logName = string.IsNullOrEmpty(playerName) ? gameObject.name : playerName;
-        if (logText != null) logText.text = $"🎉 {logName}がゴールして勝利しました！ 🎉";
+        if (logText != null) logText.text = $"🎉 {dispName}がゴールして勝利しました！ 🎉";
 
         yield return new WaitForSeconds(3.0f);
         SceneManager.LoadScene("ResultScene");
