@@ -89,7 +89,7 @@ public class SugorokuManager : MonoBehaviour
 
         if (logText != null)
         {
-            logText.text = $"{playerNames[currentPlayerIndex + 1 ]}の番です。サイコロを振ってください！";
+            logText.text = $"{playerNames[currentPlayerIndex]}の番です。サイコロを振ってください！";
         }
 
         if (diceController != null)
