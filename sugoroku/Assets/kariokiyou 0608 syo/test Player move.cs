@@ -1,6 +1,8 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
+// 🔴 シーンを切り替えるために必要なライブラリを追加
+using UnityEngine.SceneManagement;
 
 public class LoopSugorokuPlayer : MonoBehaviour
 {
@@ -29,7 +31,7 @@ public class LoopSugorokuPlayer : MonoBehaviour
     private Vector3 playerOffset;
     private EventPopupManager popupManager;
 
-    // 🔴 連続イベント中（1枚目〜2枚目が終わるまで）であることを記録するフラグ
+    // 連続イベント中（1枚目〜2枚目が終わるまで）であることを記録するフラグ
     private bool isProcessingComboEvent = false;
 
     private void Awake()
@@ -120,9 +122,18 @@ public class LoopSugorokuPlayer : MonoBehaviour
         {
             int nextIndex = (currentWaypointIndex + direction + routeWaypoints.Length) % routeWaypoints.Length;
 
+            // 前進中にスタートマス（インデックス0）をまたいだ瞬間（通過時）
             if (direction == 1 && nextIndex == 0)
             {
                 OnLapPassed();
+
+                // 🔴【追加ルール：通過時チェック】
+                // スタートを通過した時点で3pt以上持っていたら、即リザルト画面へ！
+                if (score >= 3)
+                {
+                    SceneManager.LoadScene("ResultScene");
+                    yield break; // 遷移するのでコルーチンを強制終了
+                }
 
                 if (i < absoluteSteps - 1)
                 {
@@ -146,8 +157,6 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
             transform.position = targetPosition;
 
-           
-
             yield return new WaitForSeconds(0.1f);
         }
 
@@ -162,7 +171,6 @@ public class LoopSugorokuPlayer : MonoBehaviour
         // ①【もし移動の途中でスタートマスを通過していた場合】
         if (passedStartThisTurn)
         {
-            // 🔴 連続イベントが始まったのでフラグをONにする！（これでターン交代がロックされます）
             isProcessingComboEvent = true;
 
             GameObject startMasu = routeWaypoints[0].gameObject;
@@ -187,6 +195,20 @@ public class LoopSugorokuPlayer : MonoBehaviour
         GameObject currentMasuObject = routeWaypoints[currentWaypointIndex].gameObject;
         MasuEvent masuEvent = currentMasuObject.GetComponentInChildren<MasuEvent>();
 
+        // 🔴【追加ルール：ぴったり停止時チェック】
+        // 止まったマスがスタートマス（0番）で、かつ3pt以上持っていたら即リザルト画面へ！
+        if (currentWaypointIndex == 0 && score >= 3)
+        {
+            SceneManager.LoadScene("ResultScene");
+            yield break; 
+        }
+
+        // スタートマスにぴったり止まった場合も連続イベントの起点としてロックをかける
+        if (currentWaypointIndex == 0)
+        {
+            isProcessingComboEvent = true;
+        }
+
         if (popupManager != null)
         {
             bool endPopupClosed = false; 
@@ -203,25 +225,19 @@ public class LoopSugorokuPlayer : MonoBehaviour
                 endPopupClosed = true; 
             });
 
-            // 2枚目のポップアップが完全に閉じられるのを待つ
             yield return new WaitUntil(() => endPopupClosed);
 
-            // 🔴【ここが超重要！】
-            // スタートを通過していた場合、ロックしていたターン交代処理をここで「今からやって！」と実行させます。
-            if (passedStartThisTurn)
+            // スタートを「通過」または「ぴったり停止」していた場合のアフターケア
+            if (passedStartThisTurn || currentWaypointIndex == 0)
             {
-                // ロックを解除
                 isProcessingComboEvent = false;
 
                 SugorokuManager sugorokuManager = Object.FindAnyObjectByType<SugorokuManager>();
                 if (sugorokuManager != null)
                 {
-                    // 相手のシステム側で、本来ダイスを振った後にマスの効果が終わったタイミングで呼ばれる
-                    // 「ターンを次に進める関数」を実行して、ここで初めて下の文字を「次のプレイヤー」に切り替えます。
                     sugorokuManager.OnDiceRolled(0); 
                 }
 
-                // ボタンの見た目も確実に「サイコロを振る」に戻す
                 dicesystem dice = Object.FindAnyObjectByType<dicesystem>();
                 if (dice != null)
                 {
@@ -239,11 +255,10 @@ public class LoopSugorokuPlayer : MonoBehaviour
     private void OnLapPassed()
     {
         lapCount++;
-        score += 1;
+        score += 1; // 1周通過で+1pt（ここで3ptに達する可能性があります）
         UpdateUI();
     }
 
-    // 🔴 dicesystemから「いまロック中？」と聞かれたら答える窓口
     public bool IsLockingTurn()
     {
         return isProcessingComboEvent;
