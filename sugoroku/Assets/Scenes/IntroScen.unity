@@ -852,6 +852,21 @@ MonoBehaviour:
             m_StringArgument: 
             m_BoolArgument: 0
           m_CallState: 2
+--- !u!114 &1252264824
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1252264821}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
+  m_EffectColor: {r: 0.50980395, g: 0.30980393, b: 0.16470589, a: 1}
+  m_EffectDistance: {x: 3, y: -3}
+  m_UseGraphicAlpha: 1
 --- !u!1 &1519098174
 GameObject:
   m_ObjectHideFlags: 0
@@ -1281,20 +1296,24 @@ PrefabInstance:
       value: 35
       objectReference: {fileID: 0}
     - target: {fileID: 1109643506640744052, guid: d366c00932baed34782737dd69a983bf, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
+    - target: {fileID: 1109643506640744052, guid: d366c00932baed34782737dd69a983bf, type: 3}
       propertyPath: m_Color.a
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1109643506640744052, guid: d366c00932baed34782737dd69a983bf, type: 3}
       propertyPath: m_Color.b
-      value: 0.24608402
+      value: 0.41568628
       objectReference: {fileID: 0}
     - target: {fileID: 1109643506640744052, guid: d366c00932baed34782737dd69a983bf, type: 3}
       propertyPath: m_Color.g
-      value: 0.36378098
+      value: 0.61960787
       objectReference: {fileID: 0}
     - target: {fileID: 1109643506640744052, guid: d366c00932baed34782737dd69a983bf, type: 3}
       propertyPath: m_Color.r
-      value: 0.6603774
+      value: 0.84313726
       objectReference: {fileID: 0}
     - target: {fileID: 5092486563640452375, guid: d366c00932baed34782737dd69a983bf, type: 3}
       propertyPath: m_Transition
@@ -1430,7 +1449,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6167979597057459176, guid: d366c00932baed34782737dd69a983bf, type: 3}
       propertyPath: m_fontSize
-      value: 35
+      value: 32
+      objectReference: {fileID: 0}
+    - target: {fileID: 6167979597057459176, guid: d366c00932baed34782737dd69a983bf, type: 3}
+      propertyPath: m_fontStyle
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6167979597057459176, guid: d366c00932baed34782737dd69a983bf, type: 3}
       propertyPath: m_fontColor.b
@@ -1446,7 +1469,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6167979597057459176, guid: d366c00932baed34782737dd69a983bf, type: 3}
       propertyPath: m_fontSizeBase
-      value: 35
+      value: 32
       objectReference: {fileID: 0}
     - target: {fileID: 6167979597057459176, guid: d366c00932baed34782737dd69a983bf, type: 3}
       propertyPath: m_enableAutoSizing
@@ -1470,6 +1493,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7683110422453985465, guid: d366c00932baed34782737dd69a983bf, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1252264823}
+    - targetCorrespondingSourceObject: {fileID: 7683110422453985465, guid: d366c00932baed34782737dd69a983bf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1252264824}
   m_SourcePrefab: {fileID: 100100000, guid: d366c00932baed34782737dd69a983bf, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
