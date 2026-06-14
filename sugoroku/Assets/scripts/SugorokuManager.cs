@@ -10,7 +10,8 @@ public class SugorokuManager : MonoBehaviour
 
     [SerializeField] private TextMeshProUGUI[] scoreTexts;
     [SerializeField] private TextMeshProUGUI[] lapTexts;
-    [SerializeField] private TextMeshProUGUI logText;       
+    [SerializeField] private TextMeshProUGUI logText;
+    [SerializeField] private string[] playerNames = new string[6];
 
     // 🔴 型名をすべて小文字の「dicesystem」に修正しました
     [SerializeField] private dicesystem diceController;
@@ -88,7 +89,7 @@ public class SugorokuManager : MonoBehaviour
 
         if (logText != null)
         {
-            logText.text = $"{currentPlayerIndex + 1}Pの番です。サイコロを振ってください！";
+            logText.text = $"{playerNames[currentPlayerIndex + 1 ]}の番です。サイコロを振ってください！";
         }
 
         if (diceController != null)

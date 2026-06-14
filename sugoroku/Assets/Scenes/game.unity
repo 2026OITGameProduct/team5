@@ -1281,6 +1281,13 @@ MonoBehaviour:
   - {fileID: 1583580021}
   - {fileID: 793119894}
   logText: {fileID: 1012333295}
+  playerNames:
+  - "\u8336\u30EA\u30B9"
+  - "\u767D\u30EA\u30B9"
+  - "\u7DD1\u30EA\u30B9"
+  - "\u8D64\u30EA\u30B9"
+  - "\u9752\u30EA\u30B9"
+  - "\u9EC4\u30EA\u30B9"
   diceController: {fileID: 1580555377}
 --- !u!4 &237556908
 Transform:
