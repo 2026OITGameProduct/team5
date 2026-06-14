@@ -48,8 +48,29 @@ public class dicesystem : MonoBehaviour
             EventPopupManager popup = Object.FindAnyObjectByType<EventPopupManager>();
             if (popup != null)
             {
-                isOkMode = false; 
-                popup.OnOkButtonPressed(); 
+                // 現在のプレイヤーを取得する
+                LoopSugorokuPlayer currentPlayer = null;
+                if (sugorokuManager != null)
+                {
+                    currentPlayer = sugorokuManager.GetCurrentPlayer();
+                }
+                else
+                {
+                    currentPlayer = player;
+                }
+
+                // 🛠️ 修正：名前を IsLockingTurn() に統一しました！
+                // 連続イベントの真っ最中の場合は、次へモードを維持したままポップアップだけを閉じる
+                if (currentPlayer != null && currentPlayer.IsLockingTurn())
+                {
+                    popup.OnOkButtonPressed(); 
+                }
+                else
+                {
+                    // 連続イベントが絡まない、あるいは本当に最後の終了時
+                    isOkMode = false; 
+                    popup.OnOkButtonPressed(); 
+                }
             }
             return;
         }

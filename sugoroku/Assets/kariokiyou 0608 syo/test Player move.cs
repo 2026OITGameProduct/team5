@@ -29,6 +29,9 @@ public class LoopSugorokuPlayer : MonoBehaviour
     private Vector3 playerOffset;
     private EventPopupManager popupManager;
 
+    // 🔴 連続イベント中（1枚目〜2枚目が終わるまで）であることを記録するフラグ
+    private bool isProcessingComboEvent = false;
+
     private void Awake()
     {
         popupManager = Object.FindAnyObjectByType<EventPopupManager>();
@@ -155,13 +158,12 @@ public class LoopSugorokuPlayer : MonoBehaviour
             yield break; 
         }
 
-        // ==========================================================
-        // 🛠️ 修正部分：ポップアップが重なってパニックを起こすのを防ぐ
-        // ==========================================================
-
         // ①【もし移動の途中でスタートマスを通過していた場合】
         if (passedStartThisTurn)
         {
+            // 🔴 連続イベントが始まったのでフラグをONにする！（これでターン交代がロックされます）
+            isProcessingComboEvent = true;
+
             GameObject startMasu = routeWaypoints[0].gameObject;
             MasuEvent startEvent = startMasu.GetComponentInChildren<MasuEvent>();
 
@@ -175,13 +177,7 @@ public class LoopSugorokuPlayer : MonoBehaviour
                     startPopupClosed = true; 
                 });
 
-                // プレイヤーがOKを押すのを待つ
                 yield return new WaitUntil(() => startPopupClosed);
-
-                // 🔴【超重要！】
-                // 1枚目のポップアップが「閉じるアニメーション（0.5秒）」を終えるまで、
-                // 2枚目を出すのをちょっとだけ（0.6秒）待ってあげます。
-                // これでボタン表示がごちゃ混ぜになるバグが完全に消え去ります！
                 yield return new WaitForSeconds(0.6f);
             }
         }
@@ -192,6 +188,8 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
         if (popupManager != null)
         {
+            bool endPopupClosed = false; 
+
             Sprite imageToShow = (masuEvent != null) ? masuEvent.eventImage : null;
             AudioClip soundToShow = (masuEvent != null) ? masuEvent.masuEventSound : null;
 
@@ -201,11 +199,39 @@ public class LoopSugorokuPlayer : MonoBehaviour
                 {
                     masuEvent.OnPlayerStop(this);
                 }
+                endPopupClosed = true; 
             });
+
+            // 2枚目のポップアップが完全に閉じられるのを待つ
+            yield return new WaitUntil(() => endPopupClosed);
+
+            // 🔴【ここが超重要！】
+            // スタートを通過していた場合、ロックしていたターン交代処理をここで「今からやって！」と実行させます。
+            if (passedStartThisTurn)
+            {
+                // ロックを解除
+                isProcessingComboEvent = false;
+
+                SugorokuManager sugorokuManager = Object.FindAnyObjectByType<SugorokuManager>();
+                if (sugorokuManager != null)
+                {
+                    // 相手のシステム側で、本来ダイスを振った後にマスの効果が終わったタイミングで呼ばれる
+                    // 「ターンを次に進める関数」を実行して、ここで初めて下の文字を「次のプレイヤー」に切り替えます。
+                    sugorokuManager.OnDiceRolled(0); 
+                }
+
+                // ボタンの見た目も確実に「サイコロを振る」に戻す
+                dicesystem dice = Object.FindAnyObjectByType<dicesystem>();
+                if (dice != null)
+                {
+                    dice.EnableDiceButton(); 
+                }
+            }
         }
         else
         {
             if (masuEvent != null) masuEvent.OnPlayerStop(this);
+            isProcessingComboEvent = false;
         }
     }
 
@@ -214,5 +240,11 @@ public class LoopSugorokuPlayer : MonoBehaviour
         lapCount++;
         score += 1;
         UpdateUI();
+    }
+
+    // 🔴 dicesystemから「いまロック中？」と聞かれたら答える窓口
+    public bool IsLockingTurn()
+    {
+        return isProcessingComboEvent;
     }
 }
