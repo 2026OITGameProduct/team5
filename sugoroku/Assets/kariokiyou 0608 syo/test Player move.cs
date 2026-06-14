@@ -139,11 +139,18 @@ public class LoopSugorokuPlayer : MonoBehaviour
         {
             int nextIndex = (currentWaypointIndex + direction + routeWaypoints.Length) % routeWaypoints.Length;
 
+            // 前進中にスタートマス（インデックス0）をまたいだ瞬間（通過時）
             if (direction == 1 && nextIndex == 0)
             {
+                // 🔴【ここを修正！】
+                // 通過する「直前」に、すでに3ポイント以上持っていたかをあらかじめ記録しておきます
+                bool alreadyHad3Points = (score >= 3);
+
+                // スタート通過によるポイント加算（+1）とUI更新
                 OnLapPassed();
 
-                if (score >= 3)
+                // 今回の加算で3になったのではなく、通過する前から3ポイント以上持っていた場合のみクリア！
+                if (alreadyHad3Points)
                 {
                     yield return StartCoroutine(GoalPerformanceRoutine());
                     yield break;
@@ -226,10 +233,28 @@ public class LoopSugorokuPlayer : MonoBehaviour
         GameObject currentMasuObject = routeWaypoints[currentWaypointIndex].gameObject;
         MasuEvent masuEvent = currentMasuObject.GetComponentInChildren<MasuEvent>();
 
-        if (currentWaypointIndex == 0 && score >= 3)
+        // 🔴【ここを修正！】ぴったり停止時チェック
+        // スタートマスにピタッと止まった時も同様に、「加算される前の時点で3ポイント以上持っていたか」で判定します。
+        // （※直前の通過処理やマスイベントによって既にscoreが変動している可能性があるため、現在の値をシンプルに評価します）
+        // ただし、2ptから通過加算で3ptになってちょうど止まったケースを除外するため、
+        // 「通過時にすでに3pt持っていた」または「通過せず（1周せず）に最初から3pt持ってここに止まった」状態がクリア条件になります。
+        // ※より厳密にするため、今回の移動前の状態ではなく「停止した瞬間に3pt以上、かつ今回の周回ボーナス獲得前の素のスコアが3以上だったか」
+        // というゲームデザインに基づき、直前の通過処理で3になった場合はここではクリアにせず、次の周回を求めます。
+        // 結論として、通過時と同じく「加算前のスコア」で判定するのが一番スッキリします。
+        // ここに到達した時点で、もし今回「通過」によって3になったのなら、OnLapPassedで1増える前は2だったはずです。
+        // つまり、1周してちょうど止まった場合は「今回得た1点を引いた値が3以上か」をチェックすれば綺麗に判定できます！
+
+        if (currentWaypointIndex == 0)
         {
-            yield return StartCoroutine(GoalPerformanceRoutine());
-            yield break;
+            // 今回のターンでスタートをまたいで（周回して）ここに止まったなら、ボーナス前のスコアは (score - 1)
+            // またがずに（バックなどで）ここに止まったなら、そのままの score
+            int scoreBeforeLap = passedStartThisTurn ? (score - 1) : score;
+
+            if (scoreBeforeLap >= 3)
+            {
+                yield return StartCoroutine(GoalPerformanceRoutine());
+                yield break;
+            }
         }
 
         if (currentWaypointIndex == 0)
