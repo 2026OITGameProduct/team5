@@ -1,7 +1,7 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
-// 🔴 シーンを切り替えるために必要なライブラリを追加
+// シーンを切り替えるために必要なライブラリを追加
 using UnityEngine.SceneManagement;
 
 public class LoopSugorokuPlayer : MonoBehaviour
@@ -19,7 +19,7 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
     private int currentWaypointIndex = 0;
     private bool isMoving = false;
-    private bool isGoal = false; 
+    private bool isGoal = false;
 
     private bool isForcedMoving = false;
 
@@ -78,14 +78,14 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
         if (isSkippingNextTurn)
         {
-            isSkippingNextTurn = false; 
+            isSkippingNextTurn = false;
             if (logText != null) logText.text = $"{gameObject.name}は1回休みです！";
             return;
         }
 
         if (!isMoving)
         {
-            isForcedMoving = false; 
+            isForcedMoving = false;
             StartCoroutine(MoveRoutine(steps));
         }
     }
@@ -95,7 +95,7 @@ public class LoopSugorokuPlayer : MonoBehaviour
         if (isGoal) return;
         if (!isMoving)
         {
-            isForcedMoving = true; 
+            isForcedMoving = true;
             StartCoroutine(MoveRoutine(steps));
         }
     }
@@ -106,7 +106,7 @@ public class LoopSugorokuPlayer : MonoBehaviour
         if (!isMoving)
         {
             isForcedMoving = true;
-            StartCoroutine(MoveRoutine(-steps)); 
+            StartCoroutine(MoveRoutine(-steps));
         }
     }
 
@@ -116,7 +116,7 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
         int direction = (steps > 0) ? 1 : -1;
         int absoluteSteps = Mathf.Abs(steps);
-        bool passedStartThisTurn = false; 
+        bool passedStartThisTurn = false;
 
         for (int i = 0; i < absoluteSteps; i++)
         {
@@ -127,7 +127,7 @@ public class LoopSugorokuPlayer : MonoBehaviour
             {
                 OnLapPassed();
 
-                // 🔴【追加ルール：通過時チェック】
+                // 【追加ルール：通過時チェック】
                 // スタートを通過した時点で3pt以上持っていたら、即リザルト画面へ！
                 if (score >= 3)
                 {
@@ -144,11 +144,34 @@ public class LoopSugorokuPlayer : MonoBehaviour
             currentWaypointIndex = nextIndex;
             Vector3 targetPosition = routeWaypoints[currentWaypointIndex].position + playerOffset;
 
+            // 🔴【合体機能！】次のマスの方角を計算して、動き出す直前にシュッと振り向かせる
+            Vector3 directionVector = targetPosition - transform.position;
+            directionVector.y = 0; // 首の上下の傾きは無視して、水平に回転させる
+
+            if (directionVector != Vector3.zero)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(directionVector);
+
+                // 0.1秒かけて滑らかに向き直る（テンポを損なわない絶妙な速度です）
+                float rotationTimer = 0f;
+                Quaternion startRotation = transform.rotation;
+                while (rotationTimer < 0.1f)
+                {
+                    rotationTimer += Time.deltaTime;
+                    transform.rotation = Quaternion.Slerp(startRotation, targetRotation, rotationTimer / 0.1f);
+                    yield return null;
+                }
+                transform.rotation = targetRotation; // 最後に角度を完全にピッタリ合わせる
+            }
+
+            // 動き出す瞬間（タイミング前倒し）の移動音
             if (audioSource != null && moveSound != null)
             {
                 audioSource.PlayOneShot(moveSound);
                 audioSource.PlayOneShot(moveSound);
             }
+
+            // 実際に次のマスへスーッと移動する
             while (Vector3.Distance(transform.position, targetPosition) > 0.01f)
             {
                 transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
@@ -165,7 +188,7 @@ public class LoopSugorokuPlayer : MonoBehaviour
         if (isForcedMoving)
         {
             isForcedMoving = false;
-            yield break; 
+            yield break;
         }
 
         // ①【もし移動の途中でスタートマスを通過していた場合】
@@ -178,12 +201,12 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
             if (startEvent != null && popupManager != null)
             {
-                bool startPopupClosed = false; 
+                bool startPopupClosed = false;
 
                 popupManager.ShowEventPopup(startEvent.eventImage, startEvent.masuEventSound, () =>
                 {
                     startEvent.OnPlayerStop(this);
-                    startPopupClosed = true; 
+                    startPopupClosed = true;
                 });
 
                 yield return new WaitUntil(() => startPopupClosed);
@@ -195,12 +218,12 @@ public class LoopSugorokuPlayer : MonoBehaviour
         GameObject currentMasuObject = routeWaypoints[currentWaypointIndex].gameObject;
         MasuEvent masuEvent = currentMasuObject.GetComponentInChildren<MasuEvent>();
 
-        // 🔴【追加ルール：ぴったり停止時チェック】
+        // 【追加ルール：ぴったり停止時チェック】
         // 止まったマスがスタートマス（0番）で、かつ3pt以上持っていたら即リザルト画面へ！
         if (currentWaypointIndex == 0 && score >= 3)
         {
             SceneManager.LoadScene("ResultScene");
-            yield break; 
+            yield break;
         }
 
         // スタートマスにぴったり止まった場合も連続イベントの起点としてロックをかける
@@ -211,7 +234,7 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
         if (popupManager != null)
         {
-            bool endPopupClosed = false; 
+            bool endPopupClosed = false;
 
             Sprite imageToShow = (masuEvent != null) ? masuEvent.eventImage : null;
             AudioClip soundToShow = (masuEvent != null) ? masuEvent.masuEventSound : null;
@@ -222,7 +245,7 @@ public class LoopSugorokuPlayer : MonoBehaviour
                 {
                     masuEvent.OnPlayerStop(this);
                 }
-                endPopupClosed = true; 
+                endPopupClosed = true;
             });
 
             yield return new WaitUntil(() => endPopupClosed);
@@ -235,13 +258,13 @@ public class LoopSugorokuPlayer : MonoBehaviour
                 SugorokuManager sugorokuManager = Object.FindAnyObjectByType<SugorokuManager>();
                 if (sugorokuManager != null)
                 {
-                    sugorokuManager.OnDiceRolled(0); 
+                    sugorokuManager.OnDiceRolled(0);
                 }
 
                 dicesystem dice = Object.FindAnyObjectByType<dicesystem>();
                 if (dice != null)
                 {
-                    dice.EnableDiceButton(); 
+                    dice.EnableDiceButton();
                 }
             }
         }
