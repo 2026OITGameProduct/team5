@@ -133,6 +133,11 @@ public class LoopSugorokuPlayer : MonoBehaviour
             currentWaypointIndex = nextIndex;
             Vector3 targetPosition = routeWaypoints[currentWaypointIndex].position + playerOffset;
 
+            if (audioSource != null && moveSound != null)
+            {
+                audioSource.PlayOneShot(moveSound);
+                audioSource.PlayOneShot(moveSound);
+            }
             while (Vector3.Distance(transform.position, targetPosition) > 0.01f)
             {
                 transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
@@ -141,11 +146,7 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
             transform.position = targetPosition;
 
-            if (audioSource != null && moveSound != null)
-            {
-                audioSource.PlayOneShot(moveSound);
-                audioSource.PlayOneShot(moveSound);
-            }
+           
 
             yield return new WaitForSeconds(0.1f);
         }
