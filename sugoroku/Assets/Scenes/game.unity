@@ -276,7 +276,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: e5c91bad18a2c1d4da03c6bd5d314bb3, type: 2}
+  - {fileID: 2100000, guid: 2d14c80772a924b4081d916a70e4fa21, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -534,7 +534,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 2d14c80772a924b4081d916a70e4fa21, type: 2}
+  - {fileID: 2100000, guid: a61feeb806358a148a6bb24dfdb2dd53, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1691,7 +1691,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 2d14c80772a924b4081d916a70e4fa21, type: 2}
+  - {fileID: 2100000, guid: e5c91bad18a2c1d4da03c6bd5d314bb3, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -2176,7 +2176,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MasuEvent
   masuType: 0
-  eventImage: {fileID: 21300000, guid: 9db79ae48bb572942a6819923c7e0c32, type: 3}
+  eventImage: {fileID: 21300000, guid: 804d9ebd942f66642b4bc3dca68fc35f, type: 3}
   masuEventSound: {fileID: 0}
 --- !u!1001 &438984837
 PrefabInstance:
@@ -7984,7 +7984,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MasuEvent
   masuType: 1
-  eventImage: {fileID: 21300000, guid: 60d8843d7277a394b9f3d5b78d0ad142, type: 3}
+  eventImage: {fileID: 21300000, guid: 950a4e67232999d45924bf8249a117eb, type: 3}
   masuEventSound: {fileID: 0}
 --- !u!1001 &1361486848
 PrefabInstance:
@@ -11920,7 +11920,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b199c9096d252184198f1104614a2910, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MasuEvent
-  masuType: 5
+  masuType: 8
   eventImage: {fileID: 21300000, guid: 6ff77d8b6244f0148a2a3c6fa883d334, type: 3}
   masuEventSound: {fileID: 0}
 --- !u!1 &2095624722
@@ -12322,7 +12322,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 2d14c80772a924b4081d916a70e4fa21, type: 2}
+  - {fileID: 2100000, guid: e5c91bad18a2c1d4da03c6bd5d314bb3, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
