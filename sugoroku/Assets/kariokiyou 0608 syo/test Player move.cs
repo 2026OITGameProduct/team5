@@ -27,8 +27,8 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
     private bool isForcedMoving = false;
 
-    // 外部のdicesystemやMasuEventからも名前を読み取れるようにpublic（ゲットのみ）に変更
-    public string playerName { get; private set; } = "";
+    // 🛠️【エラー修正①】dicesystemやMasuEventから名前を自由に変更・参照できるように、完全なpublicに変更しました！
+    public string playerName = "";
 
     public int score { get; set; } = 0;
     public int lapCount { get; private set; } = 0;
@@ -51,14 +51,13 @@ public class LoopSugorokuPlayer : MonoBehaviour
         }
     }
 
-    // 引数の最後に「string pName」を追加して、名前を受け取れるように拡張しました！
     public void SetupPlayer(Transform[] waypoints, int id, TextMeshProUGUI sText, TextMeshProUGUI lText, TextMeshProUGUI logTxt, string pName)
     {
         this.routeWaypoints = waypoints;
         this.scoreText = sText;
         this.lapText = lText;
         this.logText = logTxt;
-        this.playerName = pName; // 名前を記憶！
+        this.playerName = pName; 
         this.playerOffset = new Vector3((id % 2) * 0.4f, 1f, (id / 2) * 0.4f);
 
         currentWaypointIndex = 0;
@@ -80,8 +79,6 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
     public void UpdateUI()
     {
-        // 「プレイヤー名: 〇 pt」という表記に変更しました！
-        // もし名前がまだ登録されていなければ、オブジェクト名（1Pなど）を代わりに使います
         string dispName = string.IsNullOrEmpty(playerName) ? gameObject.name : playerName;
 
         if (scoreText != null) scoreText.text = $"{dispName}: {score} pt";
@@ -97,6 +94,9 @@ public class LoopSugorokuPlayer : MonoBehaviour
             isSkippingNextTurn = false;
             string dispName = string.IsNullOrEmpty(playerName) ? gameObject.name : playerName;
             if (logText != null) logText.text = $"{dispName}は1回休みです！";
+
+            SugorokuManager sugorokuManager = Object.FindAnyObjectByType<SugorokuManager>();
+            if (sugorokuManager != null) sugorokuManager.OnDiceRolled(0);
             return;
         }
 
@@ -139,17 +139,11 @@ public class LoopSugorokuPlayer : MonoBehaviour
         {
             int nextIndex = (currentWaypointIndex + direction + routeWaypoints.Length) % routeWaypoints.Length;
 
-            // 前進中にスタートマス（インデックス0）をまたいだ瞬間（通過時）
             if (direction == 1 && nextIndex == 0)
             {
-                // 🔴【ここを修正！】
-                // 通過する「直前」に、すでに3ポイント以上持っていたかをあらかじめ記録しておきます
                 bool alreadyHad3Points = (score >= 3);
-
-                // スタート通過によるポイント加算（+1）とUI更新
                 OnLapPassed();
 
-                // 今回の加算で3になったのではなく、通過する前から3ポイント以上持っていた場合のみクリア！
                 if (alreadyHad3Points)
                 {
                     yield return StartCoroutine(GoalPerformanceRoutine());
@@ -170,7 +164,6 @@ public class LoopSugorokuPlayer : MonoBehaviour
 
             if (directionVector != Vector3.zero)
             {
-                // 🔄 向きを変える演出
                 Quaternion targetRotation = Quaternion.LookRotation(directionVector);
                 float rotationTimer = 0f;
                 Quaternion startRotation = transform.rotation;
@@ -196,22 +189,23 @@ public class LoopSugorokuPlayer : MonoBehaviour
             }
 
             transform.position = targetPosition;
-
             yield return new WaitForSeconds(0.1f);
         }
 
         isMoving = false;
 
+        // 🔄【動画のバグ修正！】イベントによる追加移動（1マス進むなど）の時は、大元の移動（サイコロでの移動）の終了処理に任せるため、ここではターン交代をさせずに終了します！
         if (isForcedMoving)
         {
             isForcedMoving = false;
             yield break;
         }
 
+        // --- ここから通常の移動終了後の共通処理 ---
+        isProcessingComboEvent = true;
+
         if (passedStartThisTurn)
         {
-            isProcessingComboEvent = true;
-
             GameObject startMasu = routeWaypoints[0].gameObject;
             MasuEvent startEvent = startMasu.GetComponentInChildren<MasuEvent>();
 
@@ -233,23 +227,9 @@ public class LoopSugorokuPlayer : MonoBehaviour
         GameObject currentMasuObject = routeWaypoints[currentWaypointIndex].gameObject;
         MasuEvent masuEvent = currentMasuObject.GetComponentInChildren<MasuEvent>();
 
-        // 🔴【ここを修正！】ぴったり停止時チェック
-        // スタートマスにピタッと止まった時も同様に、「加算される前の時点で3ポイント以上持っていたか」で判定します。
-        // （※直前の通過処理やマスイベントによって既にscoreが変動している可能性があるため、現在の値をシンプルに評価します）
-        // ただし、2ptから通過加算で3ptになってちょうど止まったケースを除外するため、
-        // 「通過時にすでに3pt持っていた」または「通過せず（1周せず）に最初から3pt持ってここに止まった」状態がクリア条件になります。
-        // ※より厳密にするため、今回の移動前の状態ではなく「停止した瞬間に3pt以上、かつ今回の周回ボーナス獲得前の素のスコアが3以上だったか」
-        // というゲームデザインに基づき、直前の通過処理で3になった場合はここではクリアにせず、次の周回を求めます。
-        // 結論として、通過時と同じく「加算前のスコア」で判定するのが一番スッキリします。
-        // ここに到達した時点で、もし今回「通過」によって3になったのなら、OnLapPassedで1増える前は2だったはずです。
-        // つまり、1周してちょうど止まった場合は「今回得た1点を引いた値が3以上か」をチェックすれば綺麗に判定できます！
-
         if (currentWaypointIndex == 0)
         {
-            // 今回のターンでスタートをまたいで（周回して）ここに止まったなら、ボーナス前のスコアは (score - 1)
-            // またがずに（バックなどで）ここに止まったなら、そのままの score
             int scoreBeforeLap = passedStartThisTurn ? (score - 1) : score;
-
             if (scoreBeforeLap >= 3)
             {
                 yield return StartCoroutine(GoalPerformanceRoutine());
@@ -257,50 +237,42 @@ public class LoopSugorokuPlayer : MonoBehaviour
             }
         }
 
-        if (currentWaypointIndex == 0)
-        {
-            isProcessingComboEvent = true;
-        }
+        bool hasPopup = popupManager != null && masuEvent != null && masuEvent.eventImage != null;
 
-        if (popupManager != null)
+        if (hasPopup)
         {
             bool endPopupClosed = false;
 
-            Sprite imageToShow = (masuEvent != null) ? masuEvent.eventImage : null;
-            AudioClip soundToShow = (masuEvent != null) ? masuEvent.masuEventSound : null;
-
-            popupManager.ShowEventPopup(imageToShow, soundToShow, () =>
+            popupManager.ShowEventPopup(masuEvent.eventImage, masuEvent.masuEventSound, () =>
             {
                 if (masuEvent != null)
                 {
-                    masuEvent.OnPlayerStop(this);
+                    masuEvent.OnPlayerStop(this); // ここで「1マス進む」などのイベントが発火します
                 }
                 endPopupClosed = true;
             });
 
             yield return new WaitUntil(() => endPopupClosed);
-
-            if (passedStartThisTurn || currentWaypointIndex == 0)
-            {
-                isProcessingComboEvent = false;
-
-                SugorokuManager sugorokuManager = Object.FindAnyObjectByType<SugorokuManager>();
-                if (sugorokuManager != null)
-                {
-                    sugorokuManager.OnDiceRolled(0);
-                }
-
-                dicesystem dice = Object.FindAnyObjectByType<dicesystem>();
-                if (dice != null)
-                {
-                    dice.EnableDiceButton();
-                }
-            }
         }
         else
         {
             if (masuEvent != null) masuEvent.OnPlayerStop(this);
-            isProcessingComboEvent = false;
+        }
+
+        // 全て（追加移動の演出も含めて）完全に終わった後に、確実に1回だけ手番を進める
+        yield return new WaitForSeconds(0.3f);
+        isProcessingComboEvent = false;
+
+        SugorokuManager sugorokuManager = Object.FindAnyObjectByType<SugorokuManager>();
+        if (sugorokuManager != null)
+        {
+            sugorokuManager.OnDiceRolled(0);
+        }
+
+        dicesystem dice = Object.FindAnyObjectByType<dicesystem>();
+        if (dice != null)
+        {
+            dice.EnableDiceButton();
         }
     }
 

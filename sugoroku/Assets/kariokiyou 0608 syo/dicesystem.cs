@@ -59,14 +59,17 @@ public class dicesystem : MonoBehaviour
                     currentPlayer = player;
                 }
 
-                // 連続イベントの真っ最中の場合は、次へモードを維持したままポップアップだけを閉じる
+                // 🟢【ここを完全修正】「次へ」ボタンを押した瞬間に、ボタンを連打できないよう一時的に無効化
+                if (rollButton != null) rollButton.interactable = false;
+
+                // 連続イベント中、またはイベントによる追加移動中の場合はモードを完全にロック
                 if (currentPlayer != null && currentPlayer.IsLockingTurn())
                 {
                     popup.OnOkButtonPressed(); 
                 }
                 else
                 {
-                    // 連続イベントが絡まない、あるいは本当に最後の終了時
+                    // 完全に全ての演出が終わるまでは勝手にfalseにせず、マネージャーやプレイヤーからのEnable通知に任せる
                     isOkMode = false; 
                     popup.OnOkButtonPressed(); 
                 }
@@ -104,8 +107,7 @@ public class dicesystem : MonoBehaviour
 
         if (targetPlayer != null && targetPlayer.isSkippingNextTurn)
         {
-            // 🛠️ 修正：targetPlayer.playerName を優先的に取得し、ログ表示をカスタム名に統一！
-            // test Player move.cs 側のプロパティ（playerName）と完全に同期させます
+            // 🛠️ playerNameのアクセスエラーが起きないよう、文字列の取得方法を完全同期
             string displayName = !string.IsNullOrEmpty(targetPlayer.playerName) ? targetPlayer.playerName : targetPlayer.name;
             Debug.Log($"🚫 {displayName} は1回休みです！パスします。");
             
@@ -172,6 +174,8 @@ public class dicesystem : MonoBehaviour
 
     public void EnableDiceButton()
     {
+        // 🟢 ボタン復活のタイミングで、内部のOKモードフラグも確実にリセットする安全装置
+        isOkMode = false;
         if (rollButton != null) rollButton.interactable = true;
         UpdateVectorButtonText("サイコロを振る"); 
     }

@@ -39,14 +39,12 @@ public class SugorokuManager : MonoBehaviour
 
             LoopSugorokuPlayer p = obj.GetComponent<LoopSugorokuPlayer>();
 
-            // インスペクターの「Player Names」に書かれた名前を安全に取得する
             string currentName = (i < playerNames.Length && !string.IsNullOrEmpty(playerNames[i]))
                 ? playerNames[i]
-                : (i + 1) + "P"; // もし空欄なら「1P」「2P」にする防衛策
+                : (i + 1) + "P";
 
             if (i < scoreTexts.Length && i < lapTexts.Length)
             {
-                // 最後の引数に「currentName」を追加してプレイヤーに名前を渡す！
                 p.SetupPlayer(waypoints, i, scoreTexts[i], lapTexts[i], logText, currentName);
             }
             else
@@ -57,7 +55,6 @@ public class SugorokuManager : MonoBehaviour
             players.Add(p);
         }
 
-        // ログテキストも「1Pの番です」から「最初のプレイヤー名」に連動するようにスマート化！
         string firstPlayerName = (playerNames.Length > 0 && !string.IsNullOrEmpty(playerNames[0])) ? playerNames[0] : "1P";
         if (logText != null) logText.text = $"{firstPlayerName}の番です。サイコロを振ってください！";
     }
@@ -72,31 +69,27 @@ public class SugorokuManager : MonoBehaviour
     {
         LoopSugorokuPlayer activePlayer = players[currentPlayerIndex];
 
+        // イベント終了の通知(0)が来たら、ディレイを挟まず即座に手番を切り替える
         if (diceNumber == 0)
         {
-            StartCoroutine(TurnChangeRoutine(0.5f));
+            ChangeToNextTurnImmediate();
             return;
         }
 
         activePlayer.MoveSteps(diceNumber);
-        StartCoroutine(TurnChangeRoutine(diceNumber * 0.4f + 2.0f));
     }
 
     public void AdvanceTurn()
     {
-        StopAllCoroutines();
-        StartCoroutine(TurnChangeRoutine(0.1f));
+        ChangeToNextTurnImmediate();
     }
 
-    private IEnumerator TurnChangeRoutine(float delay)
+    private void ChangeToNextTurnImmediate()
     {
-        yield return new WaitForSeconds(delay);
-
         currentPlayerIndex = (currentPlayerIndex + 1) % players.Count;
 
         if (logText != null)
         {
-            // 念のためここも安全に名前を引っ張る形に統一
             string nextPlayerName = (currentPlayerIndex < playerNames.Length && !string.IsNullOrEmpty(playerNames[currentPlayerIndex]))
                 ? playerNames[currentPlayerIndex]
                 : players[currentPlayerIndex].gameObject.name;
@@ -110,7 +103,7 @@ public class SugorokuManager : MonoBehaviour
         }
     }
 
-    // 🛠️ 最終追加：MasuEvent.cs から全プレイヤーのリストを参照させて「ポイント強奪効果」を動かすための窓口
+    // 🛠️【復活！】 MasuEvent.cs から全プレイヤーのリストを参照させて「ポイント強奪」などを動かすための窓口
     public List<LoopSugorokuPlayer> GetAllPlayers()
     {
         return players;
